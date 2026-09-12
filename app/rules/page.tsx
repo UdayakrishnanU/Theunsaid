@@ -1,4 +1,4 @@
-export const metadata = { title: "Rules — The Unsaid" };
+export const metadata = { title: "Rules — AnonVerdict" };
 
 export default function RulesPage() {
   return (

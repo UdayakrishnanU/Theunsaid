@@ -14,7 +14,7 @@ export default function Nav() {
   const pathname = usePathname();
   return (
     <div className="top">
-      <span className="brand">The Unsaid</span>
+      <span className="brand">AnonVerdict</span>
       <nav className="topnav">
         {LINKS.map(([href, label]) => (
           <Link key={href} href={href} className={"tl" + (pathname === href ? " on" : "")}>

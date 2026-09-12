@@ -123,9 +123,9 @@ export function shareText(p: Post): string {
   if (p.type === "dilemma") {
     const t = vsum(p);
     const pa = t ? Math.round((p.va / t) * 100) : 50;
-    return `${p.text}\n\n${p.oa} or ${p.ob}? ${nf(t)} strangers have voted — ${pa}% say ${p.oa}.\n\nVote on The Unsaid:`;
+    return `${p.text}\n\n${p.oa} or ${p.ob}? ${nf(t)} strangers have voted — ${pa}% say ${p.oa}.\n\nVote on AnonVerdict:`;
   }
-  return `"${p.text}"\n\nRead more confessions on The Unsaid:`;
+  return `"${p.text}"\n\nRead more confessions on AnonVerdict:`;
 }
 
 export const CUR_LIST = Object.values(CUR);

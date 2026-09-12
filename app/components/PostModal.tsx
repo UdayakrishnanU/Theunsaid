@@ -113,7 +113,7 @@ export default function PostModal({
         orderId: res.order.id,
         amount: res.order.amount,
         currency: res.order.currency,
-        name: "The Unsaid",
+        name: "AnonVerdict",
         description: type === "confession" ? "Confession" : "Dilemma",
         onSuccess: async () => {
           setPhase("confirming");

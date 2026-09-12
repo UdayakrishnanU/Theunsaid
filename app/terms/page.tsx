@@ -1,4 +1,4 @@
-export const metadata = { title: "Terms of Service — The Unsaid" };
+export const metadata = { title: "Terms of Service — AnonVerdict" };
 
 // Ported verbatim from unsaid-v30.html. Contact email and last-updated date
 // are filled in below; have a lawyer review this page before relying on it

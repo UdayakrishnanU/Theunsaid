@@ -4,7 +4,7 @@ import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 
 export const metadata: Metadata = {
-  title: "The Unsaid — anonymous confessions, settled by strangers",
+  title: "AnonVerdict — anonymous confessions, settled by strangers",
   description: "Post a confession, or hand strangers a decision you're stuck on and let them settle it. Anonymous, always.",
 };
 
