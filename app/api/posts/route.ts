@@ -57,7 +57,7 @@ const bodySchema = z
   .object({
     type: z.enum(["confession", "dilemma"]),
     category: z.enum(CATEGORIES),
-    text: z.string().min(1).max(400),
+    text: z.string().min(1).max(800),
     optionA: z.string().max(22).optional(),
     optionB: z.string().max(22).optional(),
     bg: z.string().max(20).default("plain"),

@@ -193,15 +193,15 @@ export default function PostModal({
         {type === "confession" ? (
           <div className="f">
             <label>What is it?</label>
-            <textarea maxLength={400} placeholder="The thing you've never typed anywhere with your name on it." value={text} onChange={(e) => setText(e.target.value)} />
-            <div className="cnt">{400 - text.length} left</div>
+            <textarea maxLength={800} placeholder="The thing you've never typed anywhere with your name on it." value={text} onChange={(e) => setText(e.target.value)} />
+            <div className="cnt">{800 - text.length} left</div>
           </div>
         ) : (
           <div>
             <div className="f">
               <label>What&apos;s the situation?</label>
-              <textarea maxLength={400} placeholder="Give strangers just enough to judge it fairly." value={text} onChange={(e) => setText(e.target.value)} />
-              <div className="cnt">{400 - text.length} left</div>
+              <textarea maxLength={800} placeholder="Give strangers just enough to judge it fairly." value={text} onChange={(e) => setText(e.target.value)} />
+              <div className="cnt">{800 - text.length} left</div>
             </div>
             <div className="pr">
               <div className="f">
