@@ -1,8 +1,8 @@
 export const metadata = { title: "Terms of Service — The Unsaid" };
 
-// Ported verbatim from unsaid-v30.html. Two placeholders remain — [CONTACT EMAIL]
-// and [DATE] — same ones the prep doc flagged; fill both in before launch and
-// have a lawyer review this page (see DEPLOY.md, "Legal" section).
+// Ported verbatim from unsaid-v30.html. Contact email and last-updated date
+// are filled in below; have a lawyer review this page before relying on it
+// (see DEPLOY.md, "Legal" section).
 export default function TermsPage() {
   return (
     <div className="page">
@@ -103,14 +103,14 @@ export default function TermsPage() {
       <h3>12. How to complain</h3>
       <p>
         If something here has gone wrong — a post about you, a payment that misfired, anything — write to{" "}
-        <span className="ph">[CONTACT EMAIL]</span>. A real person reads it. We acknowledge within 24 hours and aim to resolve within 15 days.
+        <span className="ph">contact@anonverdict.com</span>. A real person reads it. We acknowledge within 24 hours and aim to resolve within 15 days.
       </p>
       <p>
         These terms are governed by the laws that apply where this service is operated, and by the rules of the place you are reading from where
         those give you rights we cannot sign away. Nothing here removes a protection your local law gives you as a consumer.
       </p>
       <p className="lastup">
-        Last updated: <span className="ph">[DATE]</span>
+        Last updated: <span className="ph">September 12, 2026</span>
       </p>
     </div>
   );
