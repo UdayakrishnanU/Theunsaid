@@ -16,6 +16,7 @@ import {
   rupee,
   shareText,
   shelfOf,
+  tvars,
   vsum,
 } from "@/lib/board-helpers";
 import type { Post } from "@/lib/types";
@@ -25,6 +26,7 @@ import { useMine } from "@/app/hooks/useMine";
 import { useOwnerKey } from "@/app/hooks/useOwnerKey";
 import PostCard from "./PostCard";
 import { EmptySlot, PinCard } from "./PinCard";
+import Carousel from "./Carousel";
 import PostModal from "./PostModal";
 import DetailModal from "./DetailModal";
 import VoteModal from "./VoteModal";
@@ -162,8 +164,25 @@ export default function Board() {
     list = [...f, ...rest.filter((p) => !isFresh(p))];
   } else list = rest;
 
-  const top = [...restAll].sort((a, b) => heat(b) - heat(a))[0] || null;
-  const totalCount = all.length;
+  const heroPosts = useMemo(() => {
+    const dilemmas = all.filter((p) => p.type === "dilemma" && vsum(p) > 0);
+    const scored = dilemmas
+      .map((p) => {
+        const t = vsum(p);
+        const closeness = 1 - Math.abs(p.va - p.vb) / t; // 1 = perfect 50/50 tie, favors close calls
+        return { p, score: closeness * 100 + Math.min(40, heat(p)) };
+      })
+      .sort((a, b) => b.score - a.score)
+      .map((s) => s.p);
+
+    let chosen = scored.slice(0, 12);
+    if (chosen.length < 10) {
+      const chosenIds = new Set(chosen.map((p) => p.id));
+      const rest = [...all].filter((p) => !chosenIds.has(p.id)).sort((a, b) => heat(b) - heat(a));
+      chosen = [...chosen, ...rest.slice(0, 10 - chosen.length)];
+    }
+    return chosen;
+  }, [all]);
 
   const st = page * PER;
   const slice = list.slice(st, st + PER);
@@ -233,7 +252,7 @@ export default function Board() {
   return (
     <div id="vBoard">
       <section className="hero">
-        {!top ? (
+        {!heroPosts.length ? (
           <>
             <span className="h-tag">
               <span className="pulse" />
@@ -242,25 +261,61 @@ export default function Board() {
             <h2 className="h-q">Say the thing you can&apos;t say anywhere else.</h2>
             <p className="h-sub">Post a confession, or hand strangers a decision you&apos;re stuck on and let them settle it. Anonymous, always.</p>
           </>
-        ) : top.type === "dilemma" ? (
-          <>
-            <span className="h-tag">
-              <span className="pulse" />
-              Trending now · {nf(vsum(top))} votes
-            </span>
-            <h2 className="h-q">{top.text}</h2>
-          </>
         ) : (
-          <>
-            <span className="h-tag">
-              <span className="pulse" />
-              Trending now · {nf(eng(top))} reactions
-            </span>
-            <h2 className="h-q" style={{ fontStyle: "italic" }}>
-              “{top.text}”
-            </h2>
-            <p className="h-sub">{nf(Math.max(0, totalCount - 1))} more confessions and dilemmas on the board.</p>
-          </>
+          <Carousel trackClassName="heroTrack" count={heroPosts.length} autoAdvanceMs={6000} ariaLabel="Trending posts">
+            {heroPosts.map((p) => {
+              const t = vsum(p);
+              const pa = t ? Math.round((p.va / t) * 100) : 50;
+              const margin = Math.abs(pa - (100 - pa));
+              const votedSide = mine.votedSide(p.id);
+              return (
+                <div className="heroSlide" key={p.id} style={tvars(p)}>
+                  <span className="h-tag">
+                    <span className="pulse" />
+                    {p.type === "dilemma"
+                      ? (margin <= 6 ? "Neck and neck · " : "Trending now · ") + nf(t) + " votes"
+                      : "Trending now · " + nf(eng(p)) + " reactions"}
+                  </span>
+                  <h2
+                    className="h-q"
+                    style={p.type === "confession" ? { fontStyle: "italic" } : undefined}
+                    onClick={() => openDetail(p.id)}
+                  >
+                    {p.type === "confession" ? `“${p.text}”` : p.text}
+                  </h2>
+                  {p.type === "dilemma" && (
+                    <div className="heroBar">
+                      <div className="blab">
+                        <span>{p.oa}</span>
+                        <span className="r">{p.ob}</span>
+                      </div>
+                      <div className={"bar" + (votedSide ? " done" : "")}>
+                        <button
+                          className="sd a"
+                          style={{ flexBasis: (votedSide ? pa : 50) + "%" }}
+                          disabled={!!votedSide}
+                          onClick={() => handleVote(p.id, "a")}
+                        >
+                          {votedSide ? pa + "%" + (votedSide === "a" ? " · yours" : "") : pa + "%"}
+                        </button>
+                        <button
+                          className="sd b"
+                          style={{ flexBasis: (votedSide ? 100 - pa : 50) + "%" }}
+                          disabled={!!votedSide}
+                          onClick={() => handleVote(p.id, "b")}
+                        >
+                          {votedSide ? (votedSide === "b" ? "yours · " : "") + (100 - pa) + "%" : 100 - pa + "%"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <button className="heroOpen" onClick={() => openDetail(p.id)}>
+                    See full post →
+                  </button>
+                </div>
+              );
+            })}
+          </Carousel>
         )}
         <div className="h-cta">
           <button className="cta cta-a" onClick={() => openM("confession")}>
@@ -397,21 +452,27 @@ export default function Board() {
                     : "The five highest bids hold the shelf for 24 hours."
                   : `Showing ${shelf.length} of ${shelfAll.length} pinned that match this filter.`}
               </p>
-              <div className="shelf">
-                {(shelf.length || sort === "trending"
-                  ? [
-                      ...shelf.map((p, i) => <PinCard key={p.id} post={p} index={i} currency={curCode} onOpen={() => openDetail(p.id)} />),
-                      ...Array.from({ length: Math.max(0, SLOTS - shelfAll.length) }, (_, i) => (
-                        <EmptySlot key={"empty" + i} n={shelfAll.length + i + 1} price={floorBase} currency={curCode} onClick={() => openM("confession", true)} />
-                      )),
-                    ]
-                  : [
-                      <div className="slot-empty" style={{ cursor: "default" }} key="none">
-                        <b>None</b>
-                        <span>No pinned posts match this filter</span>
-                      </div>,
-                    ])}
-              </div>
+              {(() => {
+                const items =
+                  shelf.length || sort === "trending"
+                    ? [
+                        ...shelf.map((p, i) => <PinCard key={p.id} post={p} index={i} currency={curCode} onOpen={() => openDetail(p.id)} />),
+                        ...Array.from({ length: Math.max(0, SLOTS - shelfAll.length) }, (_, i) => (
+                          <EmptySlot key={"empty" + i} n={shelfAll.length + i + 1} price={floorBase} currency={curCode} onClick={() => openM("confession", true)} />
+                        )),
+                      ]
+                    : [
+                        <div className="slot-empty" style={{ cursor: "default" }} key="none">
+                          <b>None</b>
+                          <span>No pinned posts match this filter</span>
+                        </div>,
+                      ];
+                return (
+                  <Carousel trackClassName="shelf" count={items.length} ariaLabel="Pinned posts">
+                    {items}
+                  </Carousel>
+                );
+              })()}
             </div>
             <div className="divider" />
           </div>
