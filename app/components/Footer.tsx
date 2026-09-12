@@ -27,7 +27,8 @@ export default function Footer() {
 
   return (
     <footer className="site-foot">
-      <Link href="/rules">Rules</Link> · <Link href="/terms">Terms</Link> · <Link href="/about">About</Link> ·{" "}
+      <Link href="/rules">Rules</Link> · <Link href="/terms">Terms</Link> · <Link href="/refund">Refund Policy</Link> ·{" "}
+      <Link href="/privacy">Privacy Policy</Link> · <Link href="/about">About</Link> ·{" "}
       <span>Anonymous. No accounts. No ads.</span> ·{" "}
       <select className="cursel" aria-label="Currency" value={code} onChange={(e) => setCode(e.target.value as CurrencyCode)}>
         {Object.values(CUR).map((c) => (
