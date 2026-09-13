@@ -273,8 +273,6 @@ button{font-family:inherit}
 
 .tldr{background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:16px;padding:16px 20px;
   font-family:var(--serif);font-size:17px;line-height:1.6;color:#7C2D12;max-width:62ch;margin:0 0 8px}
-.ph{background:#FEE2E2;border:1px dashed #DC2626;border-radius:5px;padding:1px 7px;
-  font-family:var(--sans);font-size:13px;color:#991B1B;font-weight:600}
 .lastup{font-size:14px;color:var(--faint)}
 .page h2{font-family:var(--serif);font-weight:400;font-size:40px;margin:26px 0 16px;letter-spacing:-.022em}
 .page h3{font-family:var(--serif);font-style:italic;font-weight:500;font-size:24px;margin:36px 0 10px}
@@ -477,8 +475,6 @@ button{font-family:inherit}
   .stats{gap:20px}.stat .n{font-size:23px}
   .tldr{background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:16px;padding:16px 20px;
   font-family:var(--serif);font-size:17px;line-height:1.6;color:#7C2D12;max-width:62ch;margin:0 0 8px}
-.ph{background:#FEE2E2;border:1px dashed #DC2626;border-radius:5px;padding:1px 7px;
-  font-family:var(--sans);font-size:13px;color:#991B1B;font-weight:600}
 .lastup{font-size:14px;color:var(--faint)}
 .page h2{font-size:31px}.md{padding:20px}
   .h-sub{font-size:17px}
@@ -489,7 +485,7 @@ button{font-family:inherit}
 /* ---- additions for the Next.js port: the original used <button onclick=...>
    exclusively; next/link renders <a>, so give nav/footer links the same
    reset the CSS above gives buttons. */
-.topnav a.tl,.site-foot a{text-decoration:none;display:inline-block}
+.topnav a.tl,.site-foot a{text-decoration:none;display:inline-block;color:inherit}
 a.lnk{text-decoration:none;cursor:pointer}
 .page a{color:var(--ink)}
 .empt{padding:40px 0;text-align:center;color:var(--faint)}

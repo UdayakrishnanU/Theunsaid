@@ -8,6 +8,11 @@ export default function PrivacyPage() {
         <strong>The short version.</strong> We don't want your identity, and we don't collect one. No accounts, no names, no ads, no tracking for
         marketing. We keep the bare minimum needed to run the board, take payments, and stop abuse, and nothing else.
       </p>
+      <p className="lastup">
+        This policy is issued by <strong>AnonVerdict</strong>, registered address No. 36 Sivaraj Main Street, Puzhal, Chennai 600066, Tamil Nadu,
+        India, the operator of <span className="ph">https://www.anonverdict.com</span>. We do not offer services outside India, and your data is
+        stored and processed in India.
+      </p>
 
       <h3>1. What we collect</h3>
       <ul>
@@ -95,9 +100,15 @@ export default function PrivacyPage() {
       <h3>11. Changes to this policy</h3>
       <p>When this policy changes in a way that matters, we will say so on the board rather than quietly editing this page.</p>
 
-      <h3>12. Contact</h3>
+      <h3>12. Grievance officer and governing law</h3>
       <p>
-        Questions about privacy, or a request about your data, go to <span className="ph">contact@anonverdict.com</span>. A real person reads it.
+        Questions about privacy, or a request about your data, go to <span className="ph">contact@anonverdict.com</span> — our designated
+        grievance contact under the Information Technology (Intermediaries Guidelines) Rules, 2011. A real person reads it, we acknowledge within
+        24 hours, and aim to resolve within 15 days.
+      </p>
+      <p>
+        This policy is governed by the laws of India, and any dispute is subject to the exclusive jurisdiction of the courts in Chennai, Tamil
+        Nadu.
       </p>
 
       <p className="lastup">

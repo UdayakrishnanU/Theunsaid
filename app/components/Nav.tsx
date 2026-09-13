@@ -6,7 +6,6 @@ const LINKS: [string, string][] = [
   ["/", "Board"],
   ["/rules", "Rules"],
   ["/mine", "My posts"],
-  ["/terms", "Terms"],
   ["/about", "About"],
 ];
 

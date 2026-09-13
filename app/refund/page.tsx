@@ -9,6 +9,10 @@ export default function RefundPage() {
         non-refundable, no matter what happens after you pay. This is already stated in our <a href="/terms">Terms</a>; this page just spells it
         out on its own.
       </p>
+      <p className="lastup">
+        This policy is issued by <strong>AnonVerdict</strong>, registered address No. 36 Sivaraj Main Street, Puzhal, Chennai 600066, Tamil Nadu,
+        India, the operator of <span className="ph">https://www.anonverdict.com</span>.
+      </p>
 
       <h3>1. All sales are final</h3>
       <p>
@@ -49,6 +53,14 @@ export default function RefundPage() {
 
       <h3>6. This policy will change</h3>
       <p>When it changes in a way that matters, we will say so on the board rather than quietly editing this page.</p>
+
+      <h3>7. Governing law and grievance officer</h3>
+      <p>
+        This policy is governed by the laws of India, and any dispute is subject to the exclusive jurisdiction of the courts in Chennai, Tamil
+        Nadu. For any refund or billing grievance, write to <span className="ph">contact@anonverdict.com</span> — our designated grievance
+        contact under the Information Technology (Intermediaries Guidelines) Rules, 2011. We acknowledge within 24 hours and aim to resolve
+        within 15 days.
+      </p>
 
       <p className="lastup">
         Last updated: <span className="ph">September 12, 2026</span>
