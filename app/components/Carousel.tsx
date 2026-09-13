@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // auto-advance on top of that.
 export default function Carousel({
   children,
+  className = "",
   trackClassName = "",
   count,
   autoAdvanceMs,
@@ -16,6 +17,7 @@ export default function Carousel({
   ariaLabel,
 }: {
   children: React.ReactNode;
+  className?: string;
   trackClassName?: string;
   count: number;
   autoAdvanceMs?: number;
@@ -74,7 +76,7 @@ export default function Carousel({
 
   return (
     <div
-      className="carousel"
+      className={"carousel " + className}
       onPointerEnter={() => {
         pausedRef.current = true;
       }}

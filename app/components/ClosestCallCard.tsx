@@ -5,6 +5,8 @@ import { vsum } from "@/lib/board-helpers";
 
 interface ClosestCallCardProps {
   post?: Post | null;
+  slideIndex?: number;
+  totalSlides?: number;
   onVote?: (id: string, side: "a" | "b") => Promise<{ va: number; vb: number }>;
   votedSide?: "a" | "b";
   onShare: (postData: {
@@ -33,6 +35,8 @@ const DEFAULT_SPLIT_POST = {
 
 export default function ClosestCallCard({
   post,
+  slideIndex,
+  totalSlides,
   onVote,
   votedSide: initialVotedSide,
   onShare,
@@ -44,7 +48,7 @@ export default function ClosestCallCard({
   const headline = isDefault ? DEFAULT_SPLIT_POST.headline : post.text;
   const desc = isDefault
     ? DEFAULT_SPLIT_POST.story
-    : "The internet is split almost down the middle. One vote is almost as likely to move the verdict as the next.";
+    : "Strangers are split almost down the middle on this decision. One vote could move the verdict.";
   const oa = isDefault ? DEFAULT_SPLIT_POST.oa : post.oa || "Option A";
   const ob = isDefault ? DEFAULT_SPLIT_POST.ob : post.ob || "Option B";
   const initialVa = isDefault ? DEFAULT_SPLIT_POST.va : post.va;
@@ -55,6 +59,13 @@ export default function ClosestCallCard({
   const [showVoteOptions, setShowVoteOptions] = useState(false);
   const [votesA, setVotesA] = useState(initialVa);
   const [votesB, setVotesB] = useState(initialVb);
+
+  React.useEffect(() => {
+    setVotedSide(initialVotedSide);
+    setVotesA(initialVa);
+    setVotesB(initialVb);
+    setShowVoteOptions(false);
+  }, [id, initialVotedSide, initialVa, initialVb]);
 
   const totalVotes = votesA + votesB;
   const pctA = totalVotes > 0 ? Math.round((votesA / totalVotes) * 1000) / 10 : 50.7;
@@ -94,7 +105,13 @@ export default function ClosestCallCard({
     <section className="closest-call-card" aria-label="Closest call of the day">
       <div className="closest-call-content">
         <div className="closest-call-badge-row">
-          <span className="closest-call-pill">CLOSEST CALL TODAY</span>
+          <span className="closest-call-pill">
+            <span className="closest-call-pulse-dot" />
+            CLOSEST CALL TODAY {totalSlides && totalSlides > 1 ? `· ${slideIndex} OF ${totalSlides}` : ""}
+          </span>
+          {category && (
+            <span className="closest-call-cat-tag">{category.toUpperCase()}</span>
+          )}
         </div>
 
         <h2 className="closest-call-headline">{headline}</h2>
@@ -178,7 +195,7 @@ export default function ClosestCallCard({
         <div
           className="donut-gauge"
           style={{
-            background: `conic-gradient(from 180deg, #5E81F4 0% ${pctA}%, #FF6C58 ${pctA}% 100%)`,
+            background: `conic-gradient(from 180deg, #141712 0% ${pctA}%, #B8FF4F ${pctA}% 100%)`,
           }}
           role="img"
           aria-label={`${pctA.toFixed(1)} percent versus ${pctB.toFixed(1)} percent`}

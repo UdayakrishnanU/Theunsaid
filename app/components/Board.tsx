@@ -177,24 +177,19 @@ export default function Board() {
     list = [...f, ...rest.filter((p) => !isFresh(p))];
   } else list = rest;
 
-  const heroPosts = useMemo(() => {
-    const dilemmas = all.filter((p) => p.type === "dilemma" && vsum(p) > 0);
+  const closestCalls = useMemo(() => {
+    const dilemmas = all.filter((p) => p.type === "dilemma" && vsum(p) >= 3);
     const scored = dilemmas
       .map((p) => {
         const t = vsum(p);
-        const closeness = 1 - Math.abs(p.va - p.vb) / t; // 1 = perfect 50/50 tie, favors close calls
-        return { p, score: closeness * 100 + Math.min(40, heat(p)) };
+        const closeness = 1 - Math.abs(p.va - p.vb) / t; // 1 = perfect 50/50 tie
+        return { p, score: closeness * 100 + Math.min(25, heat(p)) };
       })
       .sort((a, b) => b.score - a.score)
       .map((s) => s.p);
 
-    let chosen = scored.slice(0, 12);
-    if (chosen.length < 10) {
-      const chosenIds = new Set(chosen.map((p) => p.id));
-      const rest = [...all].filter((p) => !chosenIds.has(p.id)).sort((a, b) => heat(b) - heat(a));
-      chosen = [...chosen, ...rest.slice(0, 10 - chosen.length)];
-    }
-    return chosen;
+    const top6 = scored.slice(0, 6);
+    return top6.length > 0 ? top6 : [null];
   }, [all]);
 
   const st = page * PER;
@@ -280,16 +275,34 @@ export default function Board() {
           <span className="hero-subline">Ask anonymously. Let strangers vote. See where the crowd lands.</span>
         </div>
 
-        <ClosestCallCard
-          post={heroPosts[0] || null}
-          onVote={handleVote}
-          votedSide={heroPosts[0] ? mine.votedSide(heroPosts[0].id) : undefined}
-          onShare={(sharePayload) => {
-            setShareData(sharePayload);
-            setShareVariant("split");
-            setShareOpen(true);
-          }}
-        />
+        <div className="closest-call-carousel-wrapper">
+          <Carousel
+            className="closest-call-carousel"
+            trackClassName="closest-call-track"
+            count={closestCalls.length}
+            autoAdvanceMs={8000}
+            ariaLabel="Closest calls today"
+            showArrows={closestCalls.length > 1}
+            showDots={closestCalls.length > 1}
+          >
+            {closestCalls.map((p, idx) => (
+              <div className="closest-call-slide" key={p ? p.id : "default-" + idx}>
+                <ClosestCallCard
+                  post={p}
+                  slideIndex={idx + 1}
+                  totalSlides={closestCalls.length}
+                  onVote={handleVote}
+                  votedSide={p ? mine.votedSide(p.id) : undefined}
+                  onShare={(sharePayload) => {
+                    setShareData(sharePayload);
+                    setShareVariant("split");
+                    setShareOpen(true);
+                  }}
+                />
+              </div>
+            ))}
+          </Carousel>
+        </div>
 
         <div className="h-cta">
           <button className="cta cta-a" onClick={() => openM("confession")}>

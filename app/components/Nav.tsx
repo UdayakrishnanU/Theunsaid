@@ -13,12 +13,6 @@ const LINKS: [string, string, boolean?][] = [
 export default function Nav() {
   const pathname = usePathname();
 
-  function triggerPostModal() {
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("open-post-modal"));
-    }
-  }
-
   return (
     <header className="site-header-wrap">
       <div className="site-header-inner">
@@ -37,10 +31,6 @@ export default function Nav() {
                 {label}
               </Link>
             ))}
-            <button type="button" className="nav-post-cta" onClick={triggerPostModal}>
-              <span className="nav-cta-long">Get my verdict — ₹29</span>
-              <span className="nav-cta-short">Verdict — ₹29</span>
-            </button>
           </nav>
         </div>
       </div>
