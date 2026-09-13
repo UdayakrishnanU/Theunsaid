@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { CHIPS, ago, isFresh, nf, rsum, tvars, vsum, bgCss, bgSize, bgPos, TC, C } from "@/lib/board-helpers";
+import { CHIPS, ago, isFresh, nf, rsum, tvars, vsum, bgCss, bgSize, bgPos, TC, C, GLOW_VARS, GLOW_ACCENT, splitHeadline } from "@/lib/board-helpers";
 import type { Post } from "@/lib/types";
 
 const VISIBLE_CHIPS = 4;
@@ -31,12 +31,13 @@ export default function PostCard({
   boosted?: boolean;
 }) {
   const catKey = (post.category || "").toLowerCase();
-  const acc = (C[catKey] || TC[post.type] || TC.confession).a;
+  const acc = boosted ? GLOW_ACCENT : (C[catKey] || TC[post.type] || TC.confession).a;
   const bgv =
     post.bg && post.bg !== "plain"
       ? { backgroundImage: bgCss(post.bg, acc), backgroundSize: bgSize(post.bg), backgroundPosition: bgPos(post.bg) }
       : {};
-  const style = { ...tvars(post), ...bgv };
+  const style = { ...tvars(post), ...(boosted ? GLOW_VARS : {}), ...bgv };
+  const { headline, rest } = splitHeadline(post.text);
   const t = vsum(post);
   const pa = t ? Math.round((post.va / t) * 100) : 50;
   const pb = 100 - pa;
@@ -65,7 +66,8 @@ export default function PostCard({
           )}
         </div>
         <p className="txt" style={{ cursor: "pointer" }} onClick={onOpen}>
-          {post.text}
+          <span className="txt-headline">{headline}</span>
+          {rest && <span className="txt-rest">{rest}</span>}
         </p>
         {post.type === "dilemma" && (
           <div className="bar-wrap">

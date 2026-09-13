@@ -274,7 +274,7 @@ export default function Board() {
             <span className="pulse" />
             The board is open
           </span>
-          <span className="hero-subline">Ask anonymously. Let strangers vote. See where the crowd lands.</span>
+          <span className="hero-subline">Say what you can't say anywhere else — thousands of strangers cast the verdict.</span>
         </div>
 
         <div className="closest-call-carousel-wrapper">

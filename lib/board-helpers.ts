@@ -103,6 +103,45 @@ export function tvars(p: Post) {
   return { "--acc": x.a, "--tint": x.t, "--deep": x.d } as React.CSSProperties;
 }
 
+// Boosted (glow-tier) posts get one fixed, category-independent identity —
+// violet — instead of borrowing whatever color the post's own category
+// happens to use. That way "boosted" always reads as its own distinct
+// thing, never blending in with (or duplicating) a default card's color.
+export const GLOW_ACCENT = "#8B5CF6";
+export const GLOW_TINT = "#F5F3FF";
+export const GLOW_DEEP = "#5B21B6";
+export const GLOW_VARS = { "--acc": GLOW_ACCENT, "--tint": GLOW_TINT, "--deep": GLOW_DEEP } as React.CSSProperties;
+
+// Display-only text splitting for post/confession cards: shows a short bold
+// headline with the remainder as a smaller, muted line underneath. Purely
+// cosmetic — never changes how a post is stored or submitted.
+export function splitHeadline(text: string): { headline: string; rest: string | null } {
+  if (text.length <= 90) return { headline: text, rest: null };
+
+  const searchEnd = Math.min(130, text.length);
+  let cut = -1;
+  for (let i = 24; i < searchEnd; i++) {
+    const ch = text[i];
+    if (ch === "." || ch === "!" || ch === "?") {
+      cut = i;
+      break;
+    }
+  }
+
+  if (cut !== -1) {
+    const headline = text.slice(0, cut + 1).trim();
+    const rest = text.slice(cut + 1).trim();
+    return { headline, rest: rest.length ? rest : null };
+  }
+
+  const fallbackLimit = 90;
+  let breakAt = text.lastIndexOf(" ", fallbackLimit);
+  if (breakAt <= 0) breakAt = fallbackLimit;
+  const headline = text.slice(0, breakAt).trim() + "…";
+  const rest = text.slice(breakAt).trim();
+  return { headline, rest: rest.length ? rest : null };
+}
+
 export function bgCss(bg: string, acc: string): string {
   const a = acc + "2E", b = acc + "1A";
   switch (bg) {
