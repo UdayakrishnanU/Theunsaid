@@ -33,6 +33,17 @@ export async function openRazorpayCheckout(opts: {
 }): Promise<void> {
   await loadScript();
   if (!window.Razorpay) throw new Error("Razorpay failed to load.");
+  // For INR orders, put UPI first (as its own block) ahead of Razorpay's
+  // default method order, so Indian customers land straight on the UPI
+  // screen — which itself auto-shows one-tap app icons (Google Pay, PhonePe,
+  // etc, the "Intent" flow) on a real mobile browser, skipping an extra
+  // click into a card/netbanking-first layout. Everything else (cards,
+  // netbanking, wallets, EMI) still follows via show_default_blocks: true.
+  // Non-INR orders keep Razorpay's default order, where card-based express
+  // options (Apple Pay / Google Pay, once enabled on the account) surface on
+  // their own with no config needed.
+  const isInr = opts.currency === "INR";
+
   const rzp = new window.Razorpay({
     key: opts.keyId,
     amount: opts.amount,
@@ -43,6 +54,22 @@ export async function openRazorpayCheckout(opts: {
     handler: () => opts.onSuccess(),
     modal: { ondismiss: () => opts.onDismiss() },
     theme: { color: "#171A21" },
+    ...(isInr
+      ? {
+          config: {
+            display: {
+              blocks: {
+                upiBlock: {
+                  name: "Pay by UPI",
+                  instruments: [{ method: "upi" }],
+                },
+              },
+              sequence: ["block.upiBlock"],
+              preferences: { show_default_blocks: true },
+            },
+          },
+        }
+      : {}),
   });
   rzp.open();
 }
