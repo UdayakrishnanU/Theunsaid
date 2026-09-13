@@ -45,6 +45,7 @@ export default function DetailModal({
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showAllChips, setShowAllChips] = useState(false);
 
   if (!post) return null;
   const t = vsum(post);
@@ -136,7 +137,7 @@ export default function DetailModal({
         )}
 
         <div className="rx">
-          {CHIPS.map(([key, emoji, label]) => {
+          {(showAllChips ? CHIPS : CHIPS.slice(0, 4)).map(([key, emoji, label]) => {
             const count = post.reactions?.[key] || 0;
             const on = reactedKeys.includes(key);
             return (
@@ -147,6 +148,11 @@ export default function DetailModal({
               </button>
             );
           })}
+          {!showAllChips && CHIPS.length > 4 && (
+            <button type="button" className="chip more" onClick={() => setShowAllChips(true)}>
+              +{CHIPS.length - 4} more
+            </button>
+          )}
         </div>
 
         <div className="foot">

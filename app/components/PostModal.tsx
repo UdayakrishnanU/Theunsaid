@@ -8,6 +8,9 @@ import { useOwnerKey } from "@/app/hooks/useOwnerKey";
 import { openRazorpayCheckout } from "@/app/lib-client/razorpayCheckout";
 import TurnstileWidget from "./TurnstileWidget";
 
+const CONFESSION_HEADLINE_MAX = 150;
+const CONFESSION_DETAIL_MAX = 640;
+
 const CATEGORY_OPTS: [string, string][] = [
   ["relationships", "Relationships"],
   ["work", "Work"],
@@ -37,6 +40,8 @@ export default function PostModal({
   const [type, setType] = useState<"confession" | "dilemma">(initialType);
   const [category, setCategory] = useState("relationships");
   const [text, setText] = useState("");
+  const [detail, setDetail] = useState("");
+  const [showDetail, setShowDetail] = useState(false);
   const [oa, setOa] = useState("");
   const [ob, setOb] = useState("");
   const [bg, setBg] = useState("plain");
@@ -61,6 +66,8 @@ export default function PostModal({
       setCareFlag(false);
       setBidErr(null);
       setPhase("form");
+      setDetail("");
+      setShowDetail(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialType, wantPin]);
@@ -82,11 +89,12 @@ export default function PostModal({
 
     const ownerKey = ensure();
     setPhase("paying");
+    const confessionText = type === "confession" && detail.trim() ? `${text.trim()}\n\n${detail.trim()}` : text.trim();
     try {
       const res = await api.createPost({
         type,
         category,
-        text: text.trim(),
+        text: confessionText,
         optionA: type === "dilemma" ? oa.trim() : undefined,
         optionB: type === "dilemma" ? ob.trim() : undefined,
         bg,
@@ -191,10 +199,33 @@ export default function PostModal({
         </div>
 
         {type === "confession" ? (
-          <div className="f">
-            <label>What is it?</label>
-            <textarea maxLength={800} placeholder="The thing you've never typed anywhere with your name on it." value={text} onChange={(e) => setText(e.target.value)} />
-            <div className="cnt">{800 - text.length} left</div>
+          <div>
+            <div className="f">
+              <label>What is it?</label>
+              <textarea
+                maxLength={CONFESSION_HEADLINE_MAX}
+                placeholder="The thing you've never typed anywhere with your name on it."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+              />
+              <div className="cnt">{CONFESSION_HEADLINE_MAX - text.length} left</div>
+            </div>
+            {showDetail ? (
+              <div className="f">
+                <label>Add more detail (optional)</label>
+                <textarea
+                  maxLength={CONFESSION_DETAIL_MAX}
+                  placeholder="Any extra context, if you want to give it."
+                  value={detail}
+                  onChange={(e) => setDetail(e.target.value)}
+                />
+                <div className="cnt">{CONFESSION_DETAIL_MAX - detail.length} left</div>
+              </div>
+            ) : (
+              <button type="button" className="lnk" style={{ padding: "6px 0" }} onClick={() => setShowDetail(true)}>
+                + Add more detail
+              </button>
+            )}
           </div>
         ) : (
           <div>

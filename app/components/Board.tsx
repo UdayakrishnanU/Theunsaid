@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CATS,
+  SLOTS,
   SORTS,
   ago,
   cc,
@@ -35,7 +36,6 @@ import ShareStudioModal from "./ShareStudioModal";
 import type { CardVariant, ShareCardData } from "@/app/lib-client/shareCardCanvas";
 
 const PER = 20;
-const SLOTS = 5;
 
 function dayKey(): string {
   const d = new Date();
@@ -53,7 +53,7 @@ export default function Board() {
 
   const [cat, setCat] = useState("all");
   const [win, setWin] = useState<"today" | "all">("today");
-  const [sort, setSort] = useState<"trending" | "new" | "needy">("trending");
+  const [sort, setSort] = useState<"trending" | "new" | "needy" | "boosted">("trending");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
 
@@ -144,7 +144,7 @@ export default function Board() {
   }
 
   const passes = useCallback(
-    (p: Post) => (sort === "new" ? isFresh(p) : sort === "needy" ? needsVotes(mine.votedIds)(p) : true),
+    (p: Post) => (sort === "new" ? isFresh(p) : sort === "needy" ? needsVotes(mine.votedIds)(p) : sort === "boosted" ? isGlow(p) : true),
     [sort, mine.votedIds]
   );
   const orderOf = useCallback(
@@ -162,14 +162,16 @@ export default function Board() {
   const bumped = outbidOf(all);
   const floorBase = floorBidBase(all, curCode);
 
-  const glowAll = view.filter(isGlow);
-  const glows = orderOf(glowAll.filter(passes));
+  // Boosted (paid highlight) posts now live inline in the same merged, sorted
+  // feed as everything else, just styled distinctly, instead of sitting in
+  // their own section permanently above the board.
   const shelfIds = new Set(shelfAll.map((p) => p.id));
-  const restAll = view.filter((p) => !shelfIds.has(p.id) && !isGlow(p));
+  const restAll = view.filter((p) => !shelfIds.has(p.id));
   const rest = orderOf(restAll.filter(passes));
+  const boostedN = restAll.filter(isGlow).length;
 
-  const freshN = restAll.filter(isFresh).length + glowAll.filter(isFresh).length;
-  const needyN = restAll.filter(needsVotes(mine.votedIds)).length + glowAll.filter(needsVotes(mine.votedIds)).length;
+  const freshN = restAll.filter(isFresh).length;
+  const needyN = restAll.filter(needsVotes(mine.votedIds)).length;
 
   let list: Post[];
   if (sort === "trending") {
@@ -337,7 +339,7 @@ export default function Board() {
         <div className="crow crow2">
           <div className="sorts">
             {SORTS.map(([key, label]) => {
-              const n = key === "new" ? freshN : key === "needy" ? needyN : 0;
+              const n = key === "new" ? freshN : key === "needy" ? needyN : key === "boosted" ? boostedN : 0;
               return (
                 <button key={key} className={sort === key ? "on" : ""} onClick={() => { setSort(key as typeof sort); setPage(0); }}>
                   {label}
@@ -465,42 +467,6 @@ export default function Board() {
             <div className="divider" />
           </div>
 
-          {(glows.length > 0 || (sort === "trending" && glowAll.length > 0)) && (
-            <>
-              <div className="sect">
-                <div className="sect-head">
-                  <h2>
-                    <span className="sdot" style={{ background: "#8B5CF6" }} />
-                    Highlighted
-                  </h2>
-                  <span className="m">
-                    {sort === "trending" ? glowAll.length + " live" : glows.length + " of " + glowAll.length + " match"} · {curDef.sym}
-                    {curDef.glow} each
-                  </span>
-                </div>
-                <p className="sect-note">Paid for a card above the board for 24 hours.</p>
-                <div className="feed">
-                  {glows.map((p) => (
-                    <PostCard
-                      key={p.id}
-                      post={p}
-                      rank={null}
-                      votedSide={mine.votedSide(p.id)}
-                      reactedKeys={[]}
-                      reported={mine.hasReported(p.id)}
-                      onOpen={() => openDetail(p.id)}
-                      onVote={(side) => handleVote(p.id, side)}
-                      onReact={(key) => handleReact(p.id, key)}
-                      onShare={() => handleShare(p)}
-                      onReport={() => handleReport(p.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="divider" />
-            </>
-          )}
-
           <div className="sect" id="boardSect">
             <div className="sect-head">
               <h2>
@@ -517,6 +483,8 @@ export default function Board() {
                 ? "Newest first. Fresh posts land here the moment they are paid for."
                 : sort === "needy"
                 ? "Barely any votes yet. These are the ones that need you."
+                : sort === "boosted"
+                ? "Posts paid for extra visibility, shown in place — not a separate line."
                 : "Rising fastest right now — and anything posted in the last two hours rides on top."}
             </p>
             <div className="feed">
@@ -540,6 +508,7 @@ export default function Board() {
                     votedSide={mine.votedSide(p.id)}
                     reactedKeys={[]}
                     reported={mine.hasReported(p.id)}
+                    boosted={isGlow(p)}
                     onOpen={() => openDetail(p.id)}
                     onVote={(side) => handleVote(p.id, side)}
                     onReact={(key) => handleReact(p.id, key)}
@@ -553,6 +522,8 @@ export default function Board() {
                     {sort !== "trending" && restAll.length
                       ? sort === "new"
                         ? "Nothing has been posted in the last two hours."
+                        : sort === "boosted"
+                        ? "Nothing is boosted right now."
                         : "Every post here already has plenty of votes."
                       : cat !== "all"
                       ? `Nothing in ${cat} yet.`

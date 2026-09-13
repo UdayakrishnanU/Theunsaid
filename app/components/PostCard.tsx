@@ -1,6 +1,9 @@
 "use client";
+import { useState } from "react";
 import { CHIPS, ago, isFresh, nf, rsum, tvars, vsum, bgCss, bgSize, bgPos, TC, C } from "@/lib/board-helpers";
 import type { Post } from "@/lib/types";
+
+const VISIBLE_CHIPS = 4;
 
 export default function PostCard({
   post,
@@ -13,6 +16,7 @@ export default function PostCard({
   onShare,
   onReport,
   reported = false,
+  boosted = false,
 }: {
   post: Post;
   rank: number | null;
@@ -24,6 +28,7 @@ export default function PostCard({
   onShare: () => void;
   onReport: () => void;
   reported?: boolean;
+  boosted?: boolean;
 }) {
   const catKey = (post.category || "").toLowerCase();
   const acc = (C[catKey] || TC[post.type] || TC.confession).a;
@@ -35,9 +40,10 @@ export default function PostCard({
   const t = vsum(post);
   const pa = t ? Math.round((post.va / t) * 100) : 50;
   const pb = 100 - pa;
+  const [showAllChips, setShowAllChips] = useState(false);
 
   return (
-    <article className={"card" + (post.type === "confession" ? " conf" : "")} style={style}>
+    <article className={"card" + (post.type === "confession" ? " conf" : "") + (boosted ? " glow" : "")} style={style}>
       <div className="rank">{rank ? "#" + rank : ""}</div>
       <div className="body">
         <div className="meta">
@@ -46,6 +52,7 @@ export default function PostCard({
             {post.category}
           </span>
           {isFresh(post) && <span className="tag fresh">Just posted</span>}
+          {boosted && <span className="tag">Boosted</span>}
           <span className="sep">·</span>
           <span className="t">{ago(post.at)}</span>
           <span className="sep">·</span>
@@ -122,7 +129,7 @@ export default function PostCard({
         )}
 
         <div className="rx">
-          {CHIPS.map(([key, emoji, label]) => {
+          {(showAllChips ? CHIPS : CHIPS.slice(0, VISIBLE_CHIPS)).map(([key, emoji, label]) => {
             const count = post.reactions?.[key] || 0;
             const on = reactedKeys.includes(key);
             return (
@@ -133,6 +140,11 @@ export default function PostCard({
               </button>
             );
           })}
+          {!showAllChips && CHIPS.length > VISIBLE_CHIPS && (
+            <button type="button" className="chip more" onClick={() => setShowAllChips(true)}>
+              +{CHIPS.length - VISIBLE_CHIPS} more
+            </button>
+          )}
         </div>
 
         <div className="foot">

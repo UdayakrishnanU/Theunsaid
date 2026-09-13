@@ -42,7 +42,7 @@ export const BGS: [string, string][] = [
 ];
 
 export const SORTS: [string, string][] = [
-  ["trending", "Trending"], ["new", "Just posted"], ["needy", "Needs your votes"],
+  ["trending", "Trending"], ["new", "Just posted"], ["needy", "Needs your votes"], ["boosted", "Boosted"],
 ];
 
 const H = 36e5;
@@ -69,7 +69,7 @@ export const isFresh = (p: Post) => Date.now() - p.at < 2 * H;
 export const needsVotes = (votedIds: Set<string>) => (p: Post) =>
   !votedIds.has(p.id) && (p.type === "dilemma" ? vsum(p) < 400 : eng(p) < 40);
 
-export const SLOTS = 5;
+export const SLOTS = 1;
 
 export function liveBids(list: Post[]): Post[] {
   return list.filter((p) => p.tier === "pin" && liveP(p) && (p.paid || 0) > 0).sort((a, b) => (b.paid || 0) - (a.paid || 0));
