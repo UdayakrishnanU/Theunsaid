@@ -178,7 +178,7 @@ export default function ClosestCallCard({
         <div
           className="donut-gauge"
           style={{
-            background: `conic-gradient(#5E81F4 0% ${pctA}%, #FF6C58 ${pctA}% 100%)`,
+            background: `conic-gradient(from 180deg, #5E81F4 0% ${pctA}%, #FF6C58 ${pctA}% 100%)`,
           }}
           role="img"
           aria-label={`${pctA.toFixed(1)} percent versus ${pctB.toFixed(1)} percent`}

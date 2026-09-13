@@ -21,8 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <p className="sr" id="live" role="status" aria-live="polite" />
+        <Nav />
         <div className="wrap">
-          <Nav />
           {children}
           <div className="ticker" aria-hidden="true">
             <div className="tick-track" />

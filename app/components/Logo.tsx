@@ -16,7 +16,7 @@ export default function Logo({
     <svg
       width={size}
       height={size}
-      viewBox="0 0 120 120"
+      viewBox="4 1 112 112"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
