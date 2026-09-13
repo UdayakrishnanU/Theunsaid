@@ -30,6 +30,9 @@ import Carousel from "./Carousel";
 import PostModal from "./PostModal";
 import DetailModal from "./DetailModal";
 import VoteModal from "./VoteModal";
+import ClosestCallCard from "./ClosestCallCard";
+import ShareStudioModal from "./ShareStudioModal";
+import type { CardVariant, ShareCardData } from "@/app/lib-client/shareCardCanvas";
 
 const PER = 20;
 const SLOTS = 5;
@@ -63,6 +66,16 @@ export default function Board() {
   const [voteOpen, setVoteOpen] = useState(false);
   const [savedInfo, setSavedInfo] = useState<{ code: string; kind: string } | null>(null);
   const [votedToday, setVotedToday] = useState(0);
+
+  const [shareData, setShareData] = useState<ShareCardData | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareVariant, setShareVariant] = useState<CardVariant>("curiosity");
+
+  useEffect(() => {
+    const handler = () => openM("confession");
+    window.addEventListener("open-post-modal", handler);
+    return () => window.removeEventListener("open-post-modal", handler);
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -224,22 +237,27 @@ export default function Board() {
     const { hidden } = await api.report(id);
     if (hidden) setPosts((cur) => cur.filter((p) => p.id !== id));
   }
+  function openShareStudio(p: Post, initialVar: CardVariant = "curiosity") {
+    const t = vsum(p);
+    const pa = t ? Math.round((p.va / t) * 100) : 50;
+    const voted = mine.votedSide(p.id);
+    setShareData({
+      id: p.id,
+      category: p.category || "DILEMMA",
+      story: p.text,
+      optionA: p.oa || "Option A",
+      optionB: p.ob || "Option B",
+      pctA: pa,
+      votes: t,
+      outcome: p.outcome?.note || (p.outcome ? `Chose ${p.outcome.choice === "a" ? p.oa : p.ob}` : undefined),
+      votedSide: voted,
+    });
+    setShareVariant(voted ? "personal" : initialVar);
+    setShareOpen(true);
+  }
+
   async function handleShare(p: Post) {
-    const text = shareText(p);
-    const url = `${window.location.origin}${window.location.pathname}#p=${p.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ text, url });
-        return;
-      } catch {
-        /* fall through to clipboard */
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(`${text}\n${url}`);
-    } catch {
-      /* ignore */
-    }
+    openShareStudio(p);
   }
   function copyLink(id: string) {
     const url = `${window.location.origin}${window.location.pathname}#p=${id}`;
@@ -252,71 +270,25 @@ export default function Board() {
   return (
     <div id="vBoard">
       <section className="hero">
-        {!heroPosts.length ? (
-          <>
-            <span className="h-tag">
-              <span className="pulse" />
-              The board is open
-            </span>
-            <h2 className="h-q">Say the thing you can&apos;t say anywhere else.</h2>
-            <p className="h-sub">Post a confession, or hand strangers a decision you&apos;re stuck on and let them settle it. Anonymous, always.</p>
-          </>
-        ) : (
-          <Carousel trackClassName="heroTrack" count={heroPosts.length} autoAdvanceMs={6000} ariaLabel="Trending posts">
-            {heroPosts.map((p) => {
-              const t = vsum(p);
-              const pa = t ? Math.round((p.va / t) * 100) : 50;
-              const margin = Math.abs(pa - (100 - pa));
-              const votedSide = mine.votedSide(p.id);
-              return (
-                <div className="heroSlide" key={p.id} style={tvars(p)}>
-                  <span className="h-tag">
-                    <span className="pulse" />
-                    {p.type === "dilemma"
-                      ? (margin <= 6 ? "Neck and neck · " : "Trending now · ") + nf(t) + " votes"
-                      : "Trending now · " + nf(eng(p)) + " reactions"}
-                  </span>
-                  <h2
-                    className="h-q"
-                    style={p.type === "confession" ? { fontStyle: "italic" } : undefined}
-                    onClick={() => openDetail(p.id)}
-                  >
-                    {p.type === "confession" ? `“${p.text}”` : p.text}
-                  </h2>
-                  {p.type === "dilemma" && (
-                    <div className="heroBar">
-                      <div className="blab">
-                        <span>{p.oa}</span>
-                        <span className="r">{p.ob}</span>
-                      </div>
-                      <div className={"bar" + (votedSide ? " done" : "")}>
-                        <button
-                          className="sd a"
-                          style={{ flexBasis: (votedSide ? pa : 50) + "%" }}
-                          disabled={!!votedSide}
-                          onClick={() => handleVote(p.id, "a")}
-                        >
-                          {votedSide ? pa + "%" + (votedSide === "a" ? " · yours" : "") : pa + "%"}
-                        </button>
-                        <button
-                          className="sd b"
-                          style={{ flexBasis: (votedSide ? 100 - pa : 50) + "%" }}
-                          disabled={!!votedSide}
-                          onClick={() => handleVote(p.id, "b")}
-                        >
-                          {votedSide ? (votedSide === "b" ? "yours · " : "") + (100 - pa) + "%" : 100 - pa + "%"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  <button className="heroOpen" onClick={() => openDetail(p.id)}>
-                    See full post →
-                  </button>
-                </div>
-              );
-            })}
-          </Carousel>
-        )}
+        <div className="hero-eyebrow-row">
+          <span className="h-tag">
+            <span className="pulse" />
+            The board is open
+          </span>
+          <span className="hero-subline">Ask anonymously. Let strangers vote. See where the crowd lands.</span>
+        </div>
+
+        <ClosestCallCard
+          post={heroPosts[0] || null}
+          onVote={handleVote}
+          votedSide={heroPosts[0] ? mine.votedSide(heroPosts[0].id) : undefined}
+          onShare={(sharePayload) => {
+            setShareData(sharePayload);
+            setShareVariant("split");
+            setShareOpen(true);
+          }}
+        />
+
         <div className="h-cta">
           <button className="cta cta-a" onClick={() => openM("confession")}>
             <span className="ct">Confess something</span>
@@ -658,6 +630,13 @@ export default function Board() {
           </div>
         </div>
       )}
+
+      <ShareStudioModal
+        open={shareOpen}
+        data={shareData}
+        initialVariant={shareVariant}
+        onClose={() => setShareOpen(false)}
+      />
     </div>
   );
 }

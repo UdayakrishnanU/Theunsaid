@@ -31,6 +31,7 @@ export default function PostCard({
   const style = { ...tvars(post), ...bgv };
   const t = vsum(post);
   const pa = t ? Math.round((post.va / t) * 100) : 50;
+  const pb = 100 - pa;
 
   return (
     <article className={"card" + (post.type === "confession" ? " conf" : "")} style={style}>
@@ -68,22 +69,55 @@ export default function PostCard({
                 style={{ flexBasis: (votedSide ? pa : 50) + "%" }}
                 disabled={!!votedSide}
                 onClick={() => onVote("a")}
+                title={votedSide ? `${pa}% voted for ${post.oa}` : `Vote for ${post.oa}`}
               >
                 {votedSide ? pa + "%" + (votedSide === "a" ? " · yours" : "") : ""}
               </button>
               <button
                 className="sd b"
-                style={{ flexBasis: (votedSide ? 100 - pa : 50) + "%" }}
+                style={{ flexBasis: (votedSide ? pb : 50) + "%" }}
                 disabled={!!votedSide}
                 onClick={() => onVote("b")}
+                title={votedSide ? `${pb}% voted for ${post.ob}` : `Vote for ${post.ob}`}
               >
-                {votedSide ? (votedSide === "b" ? "yours · " : "") + (100 - pa) + "%" : ""}
+                {votedSide ? (votedSide === "b" ? "yours · " : "") + pb + "%" : ""}
               </button>
               {!votedSide && <span className="bhint">Pick a side to see what everyone else said</span>}
             </div>
+
+            {votedSide && (
+              <div className="voted-summary-row">
+                <span className="voted-summary-text">
+                  {votedSide === "a" && pa >= 50
+                    ? `${pa}% of the crowd voted with you`
+                    : votedSide === "b" && pb >= 50
+                    ? `${pb}% of the crowd voted with you`
+                    : `You voted with the ${votedSide === "a" ? pa : pb}% underdog`}
+                </span>
+                <button
+                  type="button"
+                  className="share-inline-pill"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShare();
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  Share result
+                </button>
+              </div>
+            )}
+
             <div className="tally">{nf(t)} votes</div>
           </div>
         )}
+
         <div className="rx">
           {CHIPS.map(([key, emoji, label]) => {
             const count = post.reactions?.[key] || 0;
@@ -97,9 +131,17 @@ export default function PostCard({
             );
           })}
         </div>
+
         <div className="foot">
-          <button className="lnk" onClick={onShare}>
-            Share
+          <button className="lnk share-card-lnk" onClick={onShare}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ marginRight: 5 }}>
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            Share card
           </button>
           <span className="sp" />
           <button className="lnk rep" onClick={onReport}>
