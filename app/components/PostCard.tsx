@@ -1,5 +1,5 @@
 "use client";
-import { CHIPS, ago, isFresh, nf, rsum, tvars, vsum, bgCss, bgSize, bgPos, TC } from "@/lib/board-helpers";
+import { CHIPS, ago, isFresh, nf, rsum, tvars, vsum, bgCss, bgSize, bgPos, TC, C } from "@/lib/board-helpers";
 import type { Post } from "@/lib/types";
 
 export default function PostCard({
@@ -25,7 +25,8 @@ export default function PostCard({
   onReport: () => void;
   reported?: boolean;
 }) {
-  const acc = (TC[post.type] || TC.confession).a;
+  const catKey = (post.category || "").toLowerCase();
+  const acc = (C[catKey] || TC[post.type] || TC.confession).a;
   const bgv =
     post.bg && post.bg !== "plain"
       ? { backgroundImage: bgCss(post.bg, acc), backgroundSize: bgSize(post.bg), backgroundPosition: bgPos(post.bg) }
@@ -135,6 +136,13 @@ export default function PostCard({
         </div>
 
         <div className="foot">
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', color: 'var(--faint)', marginRight: '8px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            {nf(vsum(post) + rsum(post))} views
+          </span>
           <button className="lnk share-card-lnk" onClick={onShare}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ marginRight: 5 }}>
               <circle cx="18" cy="5" r="3" />
@@ -151,6 +159,10 @@ export default function PostCard({
             onClick={onReport}
             disabled={reported}
           >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 5 }}>
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+              <line x1="4" y1="22" x2="4" y2="15"/>
+            </svg>
             {reported ? "Reported" : "Report"}
           </button>
         </div>

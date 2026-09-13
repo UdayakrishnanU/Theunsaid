@@ -19,6 +19,7 @@ interface ClosestCallCardProps {
     votes: number;
     outcome?: string;
   }) => void;
+  onOpen?: (id: string) => void;
 }
 
 const DEFAULT_SPLIT_POST = {
@@ -40,6 +41,7 @@ export default function ClosestCallCard({
   onVote,
   votedSide: initialVotedSide,
   onShare,
+  onOpen,
 }: ClosestCallCardProps) {
   const isDefault = !post || post.type !== "dilemma" || vsum(post) === 0;
 
@@ -114,7 +116,7 @@ export default function ClosestCallCard({
           )}
         </div>
 
-        <h2 className="closest-call-headline">{headline}</h2>
+        <h2 className="closest-call-headline" onClick={() => onOpen?.(id)} style={{ cursor: onOpen ? 'pointer' : undefined }}>{headline}</h2>
 
         <p className="closest-call-desc">{desc}</p>
 
@@ -134,6 +136,13 @@ export default function ClosestCallCard({
               onClick={handleShareClick}
             >
               Share the dilemma
+            </button>
+            <button
+              type="button"
+              className="btn-share-dilemma"
+              onClick={() => onOpen?.(id)}
+            >
+              Open full post →
             </button>
           </div>
         ) : !votedSide && showVoteOptions ? (
@@ -155,6 +164,23 @@ export default function ClosestCallCard({
               >
                 <span className="choice-letter">B</span>
                 <span>{ob}</span>
+              </button>
+            </div>
+            <div style={{ marginTop: '10px' }}>
+              <button
+                type="button"
+                onClick={() => onOpen?.(id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--faint)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  padding: '4px 0'
+                }}
+              >
+                Or read full story & comments first →
               </button>
             </div>
           </div>
@@ -181,9 +207,12 @@ export default function ClosestCallCard({
                 <strong>{pctB.toFixed(1)}% {votedSide === "b" ? "· yours" : ""}</strong>
               </div>
             </div>
-            <div className="revealed-actions">
+            <div className="revealed-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button type="button" className="btn-decide" onClick={handleShareClick}>
                 Share where I landed
+              </button>
+              <button type="button" className="btn-share-dilemma" onClick={() => onOpen?.(id)}>
+                View full post & comments →
               </button>
             </div>
           </div>
@@ -195,7 +224,7 @@ export default function ClosestCallCard({
         <div
           className="donut-gauge"
           style={{
-            background: `conic-gradient(from 180deg, #141712 0% ${pctA}%, #B8FF4F ${pctA}% 100%)`,
+            background: `conic-gradient(from 180deg, #141712 0% ${pctA}%, #F59E0B ${pctA}% 100%)`,
           }}
           role="img"
           aria-label={`${pctA.toFixed(1)} percent versus ${pctB.toFixed(1)} percent`}

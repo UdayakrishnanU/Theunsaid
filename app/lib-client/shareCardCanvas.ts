@@ -845,7 +845,7 @@ export function renderShareCard(
       ctx.fillStyle = CARD_COLORS.coral;
       ctx.fillText(`${votes.toLocaleString()} VERIFIED VOTES`, p, contentTop + 10 * s);
 
-      ctx.font = `950 120px Inter, system-ui, sans-serif`;
+      ctx.font = `950 ${120 * s}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = CARD_COLORS.limeInk;
       ctx.textBaseline = "middle";
       const numY = contentTop + 110 * s;
@@ -868,7 +868,7 @@ export function renderShareCard(
         2
       );
 
-      ctx.font = `900 18px Inter, system-ui, sans-serif`;
+      ctx.font = `900 ${18 * s}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = CARD_COLORS.blue;
       ctx.fillText("WOULD YOU HAVE VOTED THE SAME?", p, y + 16 * s);
     } else {
@@ -978,16 +978,17 @@ export function renderShareCard(
   // 4. PERSONAL VARIANT (How I Voted)
   // -------------------------------------------------------------
   else if (variant === "personal") {
+    const userPct = data.votedSide === 'b' ? other : pct;
     if (format === "og") {
       ctx.font = `900 ${18 * s}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = CARD_COLORS.muted;
       ctx.fillText("YOU VOTED WITH", p, contentTop + 10 * s);
 
-      ctx.font = `950 120px Inter, system-ui, sans-serif`;
+      ctx.font = `950 ${120 * s}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = CARD_COLORS.limeInk;
       ctx.textBaseline = "middle";
       const numY = contentTop + 110 * s;
-      ctx.fillText(`${pct}%`, p, numY);
+      ctx.fillText(`${userPct}%`, p, numY);
       ctx.textBaseline = "top";
 
       let y = numY + 65 * s;
@@ -1006,7 +1007,7 @@ export function renderShareCard(
         2
       );
 
-      ctx.font = `900 18px Inter, system-ui, sans-serif`;
+      ctx.font = `900 ${18 * s}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = CARD_COLORS.coral;
       ctx.fillText("HOW WOULD YOUR FRIENDS VOTE?", p, y + 16 * s);
     } else {
@@ -1054,7 +1055,7 @@ export function renderShareCard(
       ctx.font = `950 ${numH}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = CARD_COLORS.limeInk;
       ctx.textBaseline = "top";
-      ctx.fillText(`${pct}%`, p, y);
+      ctx.fillText(`${userPct}%`, p, y);
       y += numH * 0.9 + gap2;
 
       // 3. Subtitle
@@ -1127,7 +1128,7 @@ export function renderShareCard(
       ctx.textBaseline = "top";
 
       const yNums = contentTop + 60 * s;
-      ctx.font = `950 68px Inter, system-ui, sans-serif`;
+      ctx.font = `950 ${68 * s}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = CARD_COLORS.ink;
       ctx.fillText(`${pct}%`, p, yNums);
       ctx.textAlign = "right";

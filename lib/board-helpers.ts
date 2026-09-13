@@ -98,7 +98,8 @@ export function cc(key: string) {
   return C[key] || C.all;
 }
 export function tvars(p: Post) {
-  const x = TC[p.type] || TC.confession;
+  const catKey = (p.category || "").toLowerCase();
+  const x = C[catKey] || TC[p.type] || TC.confession;
   return { "--acc": x.a, "--tint": x.t, "--deep": x.d } as React.CSSProperties;
 }
 

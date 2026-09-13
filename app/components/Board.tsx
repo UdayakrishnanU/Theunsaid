@@ -293,6 +293,7 @@ export default function Board() {
                   totalSlides={closestCalls.length}
                   onVote={handleVote}
                   votedSide={p ? mine.votedSide(p.id) : undefined}
+                  onOpen={(postId) => openDetail(postId)}
                   onShare={(sharePayload) => {
                     setShareData(sharePayload);
                     setShareVariant("split");

@@ -72,21 +72,28 @@ export default function ShareStudioModal({
   // Re-render canvas whenever variant, format, or data changes
   useEffect(() => {
     if (!open || !data || !canvasRef.current) return;
+    let cancelled = false;
+    async function render() {
+      // Wait for both web fonts AND brand logo to be available
+      await Promise.all([
+        document.fonts.ready,
+        preloadBrandLogo(),
+      ]);
+      if (cancelled || !canvasRef.current) return;
+      try {
+        renderShareCard(canvasRef.current, data!, variant, format);
+      } catch (err) {
+        console.error("Canvas render error:", err);
+      }
+    }
+    // Do an immediate render (may use fallback fonts), then re-render after fonts load
     try {
       renderShareCard(canvasRef.current, data, variant, format);
     } catch (err) {
       console.error("Canvas render error:", err);
     }
-    // The brand logo image loads asynchronously; once it's ready, re-draw so
-    // the poster picks up the real mark instead of the vector placeholder.
-    preloadBrandLogo().then(() => {
-      if (!canvasRef.current) return;
-      try {
-        renderShareCard(canvasRef.current, data, variant, format);
-      } catch (err) {
-        console.error("Canvas render error:", err);
-      }
-    });
+    render();
+    return () => { cancelled = true; };
   }, [open, data, variant, format]);
 
   if (!open || !data) return null;
@@ -110,7 +117,7 @@ export default function ShareStudioModal({
       a.download = `anonverdict-${variant}-${format}.png`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
-      setStatus("PNG downloaded! Includes scannable QR code.");
+      setStatus(format === "og" ? "PNG downloaded!" : "PNG downloaded! Includes scannable QR code.");
       setTimeout(() => setStatus(""), 3500);
     }, "image/png", 1.0);
   }
