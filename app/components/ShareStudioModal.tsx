@@ -5,6 +5,7 @@ import {
   CardVariant,
   ShareCardData,
   generateShareCaption,
+  preloadBrandLogo,
   renderShareCard,
 } from "@/app/lib-client/shareCardCanvas";
 import Logo from "./Logo";
@@ -76,6 +77,16 @@ export default function ShareStudioModal({
     } catch (err) {
       console.error("Canvas render error:", err);
     }
+    // The brand logo image loads asynchronously; once it's ready, re-draw so
+    // the poster picks up the real mark instead of the vector placeholder.
+    preloadBrandLogo().then(() => {
+      if (!canvasRef.current) return;
+      try {
+        renderShareCard(canvasRef.current, data, variant, format);
+      } catch (err) {
+        console.error("Canvas render error:", err);
+      }
+    });
   }, [open, data, variant, format]);
 
   if (!open || !data) return null;
@@ -200,7 +211,7 @@ export default function ShareStudioModal({
       <div className="share-modal-dialog" role="dialog" aria-modal="true">
         <header className="share-modal-header">
           <div className="share-modal-title">
-            <Logo size={28} color="var(--ink)" />
+            <Logo size={28} />
             <div>
               <h3>Share Card Studio</h3>
               <p>Posters with scannable QR code & direct website redirect</p>

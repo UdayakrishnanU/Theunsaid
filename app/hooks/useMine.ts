@@ -11,6 +11,7 @@ export function useMine() {
   const [reactions, setReactions] = useLocalState<Record<string, string[]>>("unsaid_reactions_v2", {});
   const [myIds, setMyIds] = useLocalState<string[]>("unsaid_mine_ids", []);
   const [seenOutbid, setSeenOutbid] = useLocalState<string[]>("unsaid_seen_outbid", []);
+  const [reported, setReported] = useLocalState<string[]>("unsaid_reported_v1", []);
 
   const recordVote = (postId: string, side: "a" | "b") => setVotes({ ...votes, [postId]: side });
   const recordReaction = (postId: string, key: string) => {
@@ -23,6 +24,9 @@ export function useMine() {
   const dismissOutbid = (id: string) => {
     if (!seenOutbid.includes(id)) setSeenOutbid([...seenOutbid, id]);
   };
+  const recordReport = (id: string) => {
+    if (!reported.includes(id)) setReported([...reported, id]);
+  };
 
   return {
     votedSide: (id: string) => votes[id],
@@ -31,9 +35,11 @@ export function useMine() {
     myIds,
     isMine: (id: string) => myIds.includes(id),
     seenOutbid,
+    hasReported: (id: string) => reported.includes(id),
     recordVote,
     recordReaction,
     addMine,
     dismissOutbid,
+    recordReport,
   };
 }

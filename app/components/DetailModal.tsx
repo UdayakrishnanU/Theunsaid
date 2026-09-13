@@ -21,6 +21,7 @@ export default function DetailModal({
   onOutcomePosted,
   onShare,
   onCopyLink,
+  reported = false,
 }: {
   post: Post | null;
   isMine: boolean;
@@ -37,6 +38,7 @@ export default function DetailModal({
   onOutcomePosted: (outcome: NonNullable<Post["outcome"]>) => void;
   onShare: () => void;
   onCopyLink: () => void;
+  reported?: boolean;
 }) {
   const [choice, setChoice] = useState<"a" | "b" | "other" | null>(null);
   const [note, setNote] = useState("");
@@ -167,8 +169,12 @@ export default function DetailModal({
               Delete
             </button>
           ) : (
-            <button className="lnk rep" onClick={onReport}>
-              Report
+            <button
+              className={"lnk rep" + (reported ? " on" : "")}
+              onClick={onReport}
+              disabled={reported}
+            >
+              {reported ? "Reported" : "Report"}
             </button>
           )}
         </div>

@@ -12,6 +12,7 @@ export default function PostCard({
   onReact,
   onShare,
   onReport,
+  reported = false,
 }: {
   post: Post;
   rank: number | null;
@@ -22,6 +23,7 @@ export default function PostCard({
   onReact: (key: string) => void;
   onShare: () => void;
   onReport: () => void;
+  reported?: boolean;
 }) {
   const acc = (TC[post.type] || TC.confession).a;
   const bgv =
@@ -144,8 +146,12 @@ export default function PostCard({
             Share card
           </button>
           <span className="sp" />
-          <button className="lnk rep" onClick={onReport}>
-            Report
+          <button
+            className={"lnk rep" + (reported ? " on" : "")}
+            onClick={onReport}
+            disabled={reported}
+          >
+            {reported ? "Reported" : "Report"}
           </button>
         </div>
       </div>

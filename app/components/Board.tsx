@@ -234,7 +234,9 @@ export default function Board() {
     setPosts((cur) => cur.map((p) => (p.id === id ? { ...p, reactions } : p)));
   }
   async function handleReport(id: string) {
+    if (mine.hasReported(id)) return;
     const { hidden } = await api.report(id);
+    mine.recordReport(id);
     if (hidden) setPosts((cur) => cur.filter((p) => p.id !== id));
   }
   function openShareStudio(p: Post, initialVar: CardVariant = "curiosity") {
@@ -471,6 +473,7 @@ export default function Board() {
                       rank={null}
                       votedSide={mine.votedSide(p.id)}
                       reactedKeys={[]}
+                      reported={mine.hasReported(p.id)}
                       onOpen={() => openDetail(p.id)}
                       onVote={(side) => handleVote(p.id, side)}
                       onReact={(key) => handleReact(p.id, key)}
@@ -522,6 +525,7 @@ export default function Board() {
                     rank={sort === "trending" ? st + i + 1 : null}
                     votedSide={mine.votedSide(p.id)}
                     reactedKeys={[]}
+                    reported={mine.hasReported(p.id)}
                     onOpen={() => openDetail(p.id)}
                     onVote={(side) => handleVote(p.id, side)}
                     onReact={(key) => handleReact(p.id, key)}
@@ -588,6 +592,7 @@ export default function Board() {
         currency={curCode}
         votedSide={detailPost ? mine.votedSide(detailPost.id) : undefined}
         reactedKeys={[]}
+        reported={detailPost ? mine.hasReported(detailPost.id) : false}
         onClose={closeDetail}
         onVote={(side) => detailPost && handleVote(detailPost.id, side)}
         onReact={(key) => detailPost && handleReact(detailPost.id, key)}

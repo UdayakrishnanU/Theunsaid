@@ -153,8 +153,56 @@ function drawBlockText(
   return y;
 }
 
-// Draw the plain Shield + Gavel + Arrow logo (no black box)
+// Cached raster brand mark (public/anonverdict-logo.png). Loads once and is
+// reused for every card; falls back to the plain vector shield while it's
+// still loading so a card is never rendered blank.
+let brandLogoImg: HTMLImageElement | null = null;
+let brandLogoLoaded = false;
+
+function getLoadedBrandLogo(): HTMLImageElement | null {
+  if (typeof window === "undefined") return null;
+  if (!brandLogoImg) {
+    brandLogoImg = new window.Image();
+    brandLogoImg.src = "/anonverdict-logo.png";
+    brandLogoImg.onload = () => {
+      brandLogoLoaded = true;
+    };
+  }
+  return brandLogoLoaded ? brandLogoImg : null;
+}
+
+// Kicks off (or waits for) the logo image load; resolves once it's ready to
+// draw so callers can re-render the canvas with the real mark instead of
+// the vector placeholder.
+export function preloadBrandLogo(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (brandLogoLoaded) return Promise.resolve();
+  return new Promise((resolve) => {
+    if (!brandLogoImg) {
+      brandLogoImg = new window.Image();
+      brandLogoImg.src = "/anonverdict-logo.png";
+    }
+    brandLogoImg.addEventListener(
+      "load",
+      () => {
+        brandLogoLoaded = true;
+        resolve();
+      },
+      { once: true }
+    );
+    brandLogoImg.addEventListener("error", () => resolve(), { once: true });
+  });
+}
+
+// Draw the brand mark: the real logo once loaded, otherwise the plain
+// Shield + Gavel + Arrow vector shape as a placeholder.
 function drawBrandLogo(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  const img = getLoadedBrandLogo();
+  if (img) {
+    ctx.drawImage(img, x, y, size, size);
+    return;
+  }
+
   const s = size / 120;
   ctx.save();
   ctx.translate(x, y);
@@ -351,11 +399,12 @@ function drawBrandHeader(
   const tag = (category || "DILEMMA").toUpperCase();
   ctx.font = `800 ${12 * s}px Inter, system-ui, sans-serif`;
   const tw = ctx.measureText(tag).width + 30 * s;
-  roundRect(ctx, w - p - tw, p + 6 * s, tw, 40 * s, 20 * s, CARD_COLORS.soft, CARD_COLORS.line, 1);
+  const pillX = Math.max(p + 150 * s, w - p - tw);
+  roundRect(ctx, pillX, p + 6 * s, tw, 40 * s, 20 * s, CARD_COLORS.soft, CARD_COLORS.line, 1);
   ctx.fillStyle = "#4A5243";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(tag, w - p - tw / 2, p + 26 * s);
+  ctx.fillText(tag, pillX + tw / 2, p + 26 * s);
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
 }
