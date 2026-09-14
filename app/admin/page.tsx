@@ -40,6 +40,7 @@ export default function AdminPage() {
   const [recBusy, setRecBusy] = useState(false);
   const [purgeMsg, setPurgeMsg] = useState<string | null>(null);
   const [purgeBusy, setPurgeBusy] = useState(false);
+  const [purgeArmed, setPurgeArmed] = useState(false);
 
   async function load() {
     const [r1, r2] = await Promise.all([fetch("/api/admin/reports"), fetch("/api/admin/summary")]);
@@ -98,9 +99,12 @@ export default function AdminPage() {
   }
 
   async function purgeSeedContent() {
-    if (!window.confirm("Remove all seeded launch content from the board? This hides every post from the original 469-post seed batch (not any real visitor post). Reversible via direct DB access only.")) {
+    if (!purgeArmed) {
+      setPurgeArmed(true);
+      setPurgeMsg(null);
       return;
     }
+    setPurgeArmed(false);
     setPurgeMsg(null);
     setPurgeBusy(true);
     try {
@@ -194,9 +198,16 @@ export default function AdminPage() {
           Hides every post from the original launch seed batch (scripts/inject_seed.py) from the board — matched by
           exact post id, so this can never touch a real visitor&apos;s post.
         </p>
-        <button className="btn gh" style={{ color: "#B91C1C" }} onClick={purgeSeedContent} disabled={purgeBusy}>
-          {purgeBusy ? "Removing…" : "Remove seeded content from board"}
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button className="btn gh" style={{ color: "#B91C1C" }} onClick={purgeSeedContent} disabled={purgeBusy}>
+            {purgeBusy ? "Removing…" : purgeArmed ? "Click again to confirm — hides 469 posts" : "Remove seeded content from board"}
+          </button>
+          {purgeArmed && !purgeBusy && (
+            <button className="lnk" onClick={() => setPurgeArmed(false)}>
+              Cancel
+            </button>
+          )}
+        </div>
         {purgeMsg && <div style={{ marginTop: 8, fontSize: 13 }}>{purgeMsg}</div>}
       </div>
 
