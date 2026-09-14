@@ -59,6 +59,8 @@ export function useMine() {
   return {
     votedSide: (id: string) => votes[id],
     hasReacted: (id: string, key: string) => (reactions[id] || []).includes(key),
+    reactions,
+    reactedKeys: (id: string) => reactions[id] || [],
     votedIds: new Set(Object.keys(votes)),
     myIds,
     isMine: (id: string) => myIds.includes(id),

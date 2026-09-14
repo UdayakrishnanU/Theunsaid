@@ -299,11 +299,13 @@ button{font-family:inherit}
 .rx{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font-size:12.5px;background:#fff;border:1px solid var(--rule);border-radius:999px;padding:0 12px;min-height:44px;cursor:pointer;color:var(--dim);display:flex;align-items:center;gap:6px;line-height:1}
 .chip:hover{border-color:var(--ink);color:var(--ink)}
-.chip.on{border-color:var(--ink);background:var(--ink);color:#fff}
+.chip.on{border-color:var(--ink);background:var(--ink);color:#fff;font-weight:650;box-shadow:0 2px 8px rgba(24,24,27,0.22)}
+.chip.on .n{color:#fff;opacity:0.95}
 .card.glow .chip:hover{border-color:var(--acc)}
-.card.glow .chip.on{border-color:var(--acc);background:var(--acc)}
+.card.glow .chip.on{border-color:var(--acc);background:var(--acc);color:#fff;box-shadow:0 2px 10px color-mix(in srgb,var(--acc) 45%,transparent)}
+.card.pin .chip.on,.pinned-post-card .chip.on{border-color:#D97706;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;box-shadow:0 2px 10px rgba(217,119,6,0.38)}
 .md.detail .chip:hover{border-color:#F59E0B}
-.md.detail .chip.on{border-color:#F59E0B;background:#F59E0B}
+.md.detail .chip.on{border-color:#F59E0B;background:#F59E0B;color:#fff;box-shadow:0 2px 10px rgba(245,158,11,0.35)}
 .chip .n{font-weight:700;font-size:11.5px;font-variant-numeric:tabular-nums}
 .chip.more{border-style:dashed;color:var(--faint)}
 .tray{display:none;flex-wrap:wrap;gap:6px;margin-top:8px}.tray.open{display:flex}
@@ -1760,6 +1762,12 @@ a.lnk{text-decoration:none;cursor:pointer}
   gap: 7px;
 }
 
+.post-pinned-badge-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .post-badge-pinned {
   display: inline-flex;
   align-items: center;
@@ -1772,6 +1780,22 @@ a.lnk{text-decoration:none;cursor:pointer}
   padding: 3.5px 12px;
   border-radius: 9999px;
   box-shadow: 0 1px 3px rgba(245, 158, 11, 0.12);
+  user-select: none;
+}
+
+.post-pinned-price {
+  display: inline-flex;
+  align-items: center;
+  background: #FFFBEB;
+  border: 1px solid #FCD34D;
+  color: #B45309;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 2px rgba(217, 119, 6, 0.08);
+  font-variant-numeric: tabular-nums;
   user-select: none;
 }
 

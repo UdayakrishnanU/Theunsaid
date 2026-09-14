@@ -12,6 +12,7 @@ import {
   CAT_META,
   formatScore,
   calcViews,
+  rupee,
 } from "@/lib/board-helpers";
 import type { Post } from "@/lib/types";
 
@@ -381,14 +382,19 @@ export default function PostCard({
           </div>
 
           <div className="post-header-right">
-            {/* Pinned Badge */}
+            {/* Pinned Badge & Price */}
             {isPinned && (
-              <span className="post-badge-pinned">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M2 4l3 12h14l3-12-5 6-5-6-5 6-5-6z" />
-                </svg>
-                Pinned
-              </span>
+              <div className="post-pinned-badge-group">
+                <span className="post-badge-pinned">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2 4l3 12h14l3-12-5 6-5-6-5 6-5-6z" />
+                  </svg>
+                  Pinned
+                </span>
+                <span className="post-pinned-price">
+                  {post.paid ? rupee(post.paid, post.currency || "INR") : "₹700"}
+                </span>
+              </div>
             )}
 
             {/* Boosted Badge */}

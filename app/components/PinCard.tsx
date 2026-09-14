@@ -19,6 +19,7 @@ export function PinCard({
   onReport = () => {},
   votedSide,
   reported = false,
+  reactedKeys = [],
 }: {
   post: Post;
   currency: CurrencyCode;
@@ -29,6 +30,7 @@ export function PinCard({
   onReport?: () => void;
   votedSide?: "a" | "b";
   reported?: boolean;
+  reactedKeys?: string[];
 }) {
   return (
     <div className="pin-card-outer">
@@ -42,6 +44,7 @@ export function PinCard({
         onReport={onReport}
         votedSide={votedSide}
         reported={reported}
+        reactedKeys={reactedKeys}
       />
     </div>
   );

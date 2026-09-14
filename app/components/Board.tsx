@@ -552,6 +552,7 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
                             onReport={() => handleReport(p.id)}
                             votedSide={mine.votedSide(p.id)}
                             reported={mine.hasReported(p.id)}
+                            reactedKeys={mine.reactedKeys(p.id)}
                           />
                         )),
                         ...Array.from({ length: Math.max(0, SLOTS - shelfAll.length) }, (_, i) => (
@@ -614,7 +615,7 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
                     post={p}
                     rank={sort === "trending" ? st + i + 1 : null}
                     votedSide={mine.votedSide(p.id)}
-                    reactedKeys={[]}
+                    reactedKeys={mine.reactedKeys(p.id)}
                     reported={mine.hasReported(p.id)}
                     boosted={isGlow(p)}
                     onOpen={() => openDetail(p.id)}
@@ -685,7 +686,7 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
         onShelf={detailOnShelf}
         currency={curCode}
         votedSide={detailPost ? mine.votedSide(detailPost.id) : undefined}
-        reactedKeys={[]}
+        reactedKeys={detailPost ? mine.reactedKeys(detailPost.id) : []}
         reported={detailPost ? mine.hasReported(detailPost.id) : false}
         onClose={closeDetail}
         onVote={(side) => detailPost && handleVote(detailPost.id, side)}
