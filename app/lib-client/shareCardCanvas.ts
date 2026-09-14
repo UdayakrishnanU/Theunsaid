@@ -514,7 +514,7 @@ export function renderShareCard(
   const pct = Math.max(0, Math.min(100, Math.round(data.pctA)));
   const other = 100 - pct;
   const votes = Math.max(0, data.votes || 0);
-  const outcome = data.outcome || "They agreed and worked out a fair arrangement.";
+  const outcome = data.outcome || "No outcome shared yet.";
 
   // Use real public production URL so physical phone cameras scan and open properly
   const base =

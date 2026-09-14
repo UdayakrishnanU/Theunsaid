@@ -64,10 +64,11 @@ export default function ShareStudioModal({
 
   useEffect(() => {
     if (open) {
-      setVariant(initialVariant);
+      const needsFallback = initialVariant === "outcome" && !(data?.outcome && data.outcome.trim().length > 0);
+      setVariant(needsFallback ? "curiosity" : initialVariant);
       setStatus("");
     }
-  }, [open, initialVariant]);
+  }, [open, initialVariant, data]);
 
   // Re-render canvas whenever variant, format, or data changes
   useEffect(() => {
@@ -97,6 +98,8 @@ export default function ShareStudioModal({
   }, [open, data, variant, format]);
 
   if (!open || !data) return null;
+
+  const hasOutcome = !!(data.outcome && data.outcome.trim().length > 0);
 
   const base =
     typeof window !== "undefined" &&
@@ -235,17 +238,23 @@ export default function ShareStudioModal({
             <div className="share-control-group">
               <label className="share-label">1. Card Format</label>
               <div className="share-variant-grid">
-                {VARIANTS.map((v) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    className={`share-variant-btn ${variant === v.id ? "active" : ""}`}
-                    onClick={() => setVariant(v.id)}
-                  >
-                    <strong>{v.label}</strong>
-                    <span>{v.desc}</span>
-                  </button>
-                ))}
+                {VARIANTS.map((v) => {
+                  const locked = v.id === "outcome" && !hasOutcome;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      className={`share-variant-btn ${variant === v.id ? "active" : ""}${locked ? " locked" : ""}`}
+                      onClick={() => { if (!locked) setVariant(v.id); }}
+                      disabled={locked}
+                      aria-disabled={locked}
+                      title={locked ? "Unlocks once the outcome is posted" : undefined}
+                    >
+                      <strong>{v.label}</strong>
+                      <span>{locked ? "Unlocks once the outcome is posted" : v.desc}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
