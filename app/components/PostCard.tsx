@@ -593,51 +593,42 @@ export default function PostCard({
             </div>
           )}
 
+          {/* Pinned 3D Crown in Corner (matches Image 2 without text slogan) */}
           {isPinned && (
-            <div className="post-art-wrap pinned-art" aria-hidden="true">
-              <div className="art-slogan slogan-pinned">
-                <span className="slogan-line">Top of the feed.</span>
-                <span className="slogan-line">Bigger conversations.</span>
-                <svg className="slogan-swoop" viewBox="0 0 90 8" fill="none">
-                  <path d="M2 3C28 8 62 8 88 2" stroke="#B45309" strokeWidth="2.2" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div className="post-art-visual crown-visual">
-                <svg className="art-crown-svg" viewBox="0 0 40 40" fill="none">
-                  <defs>
-                    <linearGradient id={`goldCrownGradCard-${post.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#FEF08A" />
-                      <stop offset="35%" stopColor="#F59E0B" />
-                      <stop offset="70%" stopColor="#D97706" />
-                      <stop offset="100%" stopColor="#92400E" />
-                    </linearGradient>
-                    <linearGradient id={`goldCrownSheen-${post.id}`} x1="20%" y1="0%" x2="80%" y2="100%">
-                      <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.85" />
-                      <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M6 13L11 27H29L34 13L25 19L20 8L15 19L6 13Z"
-                    fill={`url(#goldCrownGradCard-${post.id})`}
-                    stroke="#78350F"
-                    strokeWidth="1.2"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M7.5 14.5L11.5 25.5H28.5L32.5 14.5L25 19.5L20 9.5L15 19.5L7.5 14.5Z"
-                    fill={`url(#goldCrownSheen-${post.id})`}
-                    opacity="0.38"
-                  />
-                  <rect x="10" y="25" width="20" height="3" rx="1.5" fill="#B45309" stroke="#78350F" strokeWidth="0.8" />
-                  <circle cx="14" cy="26.5" r="1" fill="#FEF3C7" />
-                  <circle cx="20" cy="26.5" r="1.2" fill="#FEF3C7" />
-                  <circle cx="26" cy="26.5" r="1" fill="#FEF3C7" />
-                  <circle cx="6" cy="13" r="2.5" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.9" />
-                  <circle cx="20" cy="8" r="3" fill="#FEF08A" stroke="#92400E" strokeWidth="0.9" />
-                  <circle cx="34" cy="13" r="2.5" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.9" />
-                  <path d="M36 6 Q36 9 33 9 Q36 9 36 12 Q36 9 39 9 Q36 9 36 6Z" fill="#F59E0B" />
-                </svg>
-              </div>
+            <div className="pinned-crown-corner" aria-hidden="true" title="Pinned post">
+              <svg className="art-crown-svg" viewBox="0 0 40 40" fill="none">
+                <defs>
+                  <linearGradient id={`goldCrownGradCard-${post.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FEF08A" />
+                    <stop offset="35%" stopColor="#F59E0B" />
+                    <stop offset="70%" stopColor="#D97706" />
+                    <stop offset="100%" stopColor="#92400E" />
+                  </linearGradient>
+                  <linearGradient id={`goldCrownSheen-${post.id}`} x1="20%" y1="0%" x2="80%" y2="100%">
+                    <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.85" />
+                    <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M6 13L11 27H29L34 13L25 19L20 8L15 19L6 13Z"
+                  fill={`url(#goldCrownGradCard-${post.id})`}
+                  stroke="#78350F"
+                  strokeWidth="1.2"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M7.5 14.5L11.5 25.5H28.5L32.5 14.5L25 19.5L20 9.5L15 19.5L7.5 14.5Z"
+                  fill={`url(#goldCrownSheen-${post.id})`}
+                  opacity="0.38"
+                />
+                <rect x="10" y="25" width="20" height="3" rx="1.5" fill="#B45309" stroke="#78350F" strokeWidth="0.8" />
+                <circle cx="14" cy="26.5" r="1" fill="#FEF3C7" />
+                <circle cx="20" cy="26.5" r="1.2" fill="#FEF3C7" />
+                <circle cx="26" cy="26.5" r="1" fill="#FEF3C7" />
+                <circle cx="6" cy="13" r="2.5" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.9" />
+                <circle cx="20" cy="8" r="3" fill="#FEF08A" stroke="#92400E" strokeWidth="0.9" />
+                <circle cx="34" cy="13" r="2.5" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.9" />
+              </svg>
             </div>
           )}
         </div>
@@ -655,13 +646,15 @@ export default function PostCard({
               <span className="stat-text">{formatScore(totalVotes || displayScore)} votes</span>
             </span>
 
-            {/* Comments stat */}
-            <span className="post-stat-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-              </svg>
-              <span className="stat-text">{formatScore(totalReacts || Math.max(1, Math.round((totalVotes || 1) * 0.45)))} comments</span>
-            </span>
+            {/* Comments stat (omitted on pinned to match Image 2 layout) */}
+            {!isPinned && (
+              <span className="post-stat-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
+                <span className="stat-text">{formatScore(totalReacts || Math.max(1, Math.round((totalVotes || 1) * 0.45)))} comments</span>
+              </span>
+            )}
 
             {/* Views stat */}
             <span className="post-stat-item">
