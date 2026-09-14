@@ -976,3 +976,510 @@ a.lnk{text-decoration:none;cursor:pointer}
 }
 .share-inline-pill:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(184,255,79,0.45)}
 .share-card-lnk{display:inline-flex;align-items:center}
+
+/* ==========================================================================
+   REDESIGNED BOARD POSTS (Normal, Boosted, Pinned)
+   ========================================================================== */
+
+.feed-post-card {
+  display: flex;
+  gap: 16px;
+  border-radius: 18px;
+  padding: 18px 22px 16px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  position: relative;
+  overflow: visible;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.feed-post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* Pinned Post Card */
+.feed-post-card.card-pinned {
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.8) 0%, rgba(255, 255, 255, 0.98) 45%, rgba(254, 249, 195, 0.6) 100%);
+  border: 1.5px solid #FCD34D;
+  box-shadow: 0 4px 22px -2px rgba(245, 158, 11, 0.16), 0 2px 6px -1px rgba(245, 158, 11, 0.08);
+}
+
+.feed-post-card.card-pinned:hover {
+  box-shadow: 0 8px 28px -2px rgba(245, 158, 11, 0.24), 0 4px 10px -1px rgba(245, 158, 11, 0.12);
+}
+
+/* Boosted Post Card default */
+.feed-post-card.card-boosted {
+  background: linear-gradient(135deg, rgba(255, 241, 242, 0.85) 0%, rgba(255, 255, 255, 0.98) 45%, rgba(255, 228, 230, 0.6) 100%);
+  border: 1.5px solid #FDA4AF;
+  box-shadow: 0 4px 20px -2px rgba(244, 63, 94, 0.16), 0 2px 6px -1px rgba(244, 63, 94, 0.08);
+}
+
+.feed-post-card.card-boosted:hover {
+  box-shadow: 0 8px 26px -2px rgba(244, 63, 94, 0.24), 0 4px 10px -1px rgba(244, 63, 94, 0.12);
+}
+
+/* Left Vote Score Column */
+.post-vote-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  width: 44px;
+  flex-shrink: 0;
+  padding-top: 2px;
+  user-select: none;
+}
+
+.vote-btn {
+  background: transparent;
+  border: none;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #94A3B8;
+  border-radius: 8px;
+  transition: all 0.16s ease;
+  line-height: 1;
+}
+
+.vote-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #0F172A;
+}
+
+.vote-btn:active {
+  transform: scale(0.9);
+}
+
+.vote-btn.active {
+  transform: scale(1.1);
+}
+
+.post-score-num {
+  font-size: 15.5px;
+  font-weight: 800;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  margin: 2px 0;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+
+/* Main Content Column */
+.post-main-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Row */
+.post-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.post-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.post-anon-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 9999px;
+  padding: 2px 9px 2px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  user-select: none;
+}
+
+.post-anon-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-meta-dot {
+  color: #CBD5E1;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.post-time-ago {
+  color: #64748B;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.post-header-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.post-badge-pinned {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #FDE68A;
+  border: 1px solid #FCD34D;
+  color: #78350F;
+  font-size: 11.5px;
+  font-weight: 750;
+  padding: 3px 11px;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15);
+  user-select: none;
+}
+
+.post-badge-boosted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #FFFFFF;
+  font-size: 11.5px;
+  font-weight: 750;
+  padding: 3px 11px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.3);
+  user-select: none;
+}
+
+.post-cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  border-width: 1px;
+  border-style: solid;
+  user-select: none;
+}
+
+.cat-icon {
+  display: inline-block;
+  font-size: 11.5px;
+  line-height: 1;
+}
+
+/* Three dots menu */
+.post-menu-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.post-menu-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.post-menu-btn:hover {
+  color: #334155;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.post-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  padding: 4px;
+  z-index: 50;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.menu-item {
+  background: transparent;
+  border: none;
+  padding: 7px 10px;
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: #334155;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  transition: background 0.12s ease;
+}
+
+.menu-item:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.menu-item.menu-report:hover {
+  color: #DC2626;
+  background: #FEF2F2;
+}
+
+.menu-item.menu-report.reported {
+  color: #DC2626;
+  font-weight: 700;
+  cursor: default;
+}
+
+/* Middle Row (Content & Artwork) */
+.post-middle-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 4px 0 10px;
+  position: relative;
+}
+
+.post-body-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.post-headline {
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-size: 17.5px;
+  font-weight: 700;
+  line-height: 1.42;
+  color: #0F172A;
+  margin: 0 0 10px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  letter-spacing: -0.015em;
+}
+
+.post-headline:hover {
+  color: #2563EB;
+}
+
+.post-headline-rest {
+  font-weight: 400;
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Decorative Hero Artwork on Boosted & Pinned */
+.post-art-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  user-select: none;
+  margin-left: 12px;
+  margin-top: -6px;
+}
+
+.post-art-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.art-bolt-svg {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 2px 8px rgba(244, 63, 94, 0.25));
+  transform: rotate(-4deg);
+}
+
+.art-crown-svg {
+  width: 46px;
+  height: 46px;
+  filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.25));
+  transform: rotate(-2deg);
+}
+
+.post-art-typography {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.18;
+  margin-top: -2px;
+}
+
+.art-script-line {
+  font-family: var(--font-newsreader), 'Caveat', 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.art-swoosh-svg {
+  width: 58px;
+  height: 8px;
+  margin-top: 2px;
+}
+
+/* Footer Stats & Share */
+.post-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 4px;
+}
+
+.post-stats-group {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.post-stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748B;
+  user-select: none;
+}
+
+.post-stat-item svg {
+  flex-shrink: 0;
+}
+
+.post-footer-actions {
+  display: flex;
+  align-items: center;
+}
+
+.post-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: #334155;
+  font-size: 12.5px;
+  font-weight: 650;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1;
+}
+
+.post-share-btn:hover {
+  background: #E2E8F0;
+  transform: translateY(-1px);
+}
+
+.post-share-btn.share-pinned {
+  background: #FEF3C7;
+  border-color: #FDE68A;
+  color: #92400E;
+}
+
+.post-share-btn.share-pinned:hover {
+  background: #FDE68A;
+}
+
+.post-share-btn.share-boosted {
+  background: #FFF1F4;
+  border-color: #FDA4AF;
+  color: #BE123C;
+}
+
+.post-share-btn.share-boosted:hover {
+  background: #FFE4E6;
+}
+
+/* Boosted Shades Grid inside PostModal */
+.boosted-shades-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.shade-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid;
+  border-radius: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  text-align: left;
+}
+
+.shade-pill-btn:hover {
+  transform: translateY(-1px);
+}
+
+.shade-circle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.shade-name {
+  font-size: 12.5px;
+}
+
+.pin-card-outer {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .post-art-wrap {
+    display: none;
+  }
+  .feed-post-card {
+    padding: 14px 14px 12px;
+    gap: 10px;
+  }
+  .post-stats-group {
+    gap: 10px;
+  }
+  .post-stat-item {
+    font-size: 11.5px;
+  }
+  .boosted-shades-grid {
+    grid-template-columns: 1fr;
+  }
+}

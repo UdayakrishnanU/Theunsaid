@@ -11,6 +11,118 @@ export const CATS: [string, string][] = [
   ["random", "Random"],
 ];
 
+export interface BoostedShade {
+  key: string;
+  label: string;
+  accent: string;
+  border: string;
+  bgLight: string;
+  bgGradient: string;
+  textDark: string;
+  badgeBg: string;
+  glowShadow: string;
+}
+
+export const BOOSTED_SHADES: Record<string, BoostedShade> = {
+  rose: {
+    key: "rose",
+    label: "Rose Blush",
+    accent: "#F43F5E",
+    border: "#FDA4AF",
+    bgLight: "#FFF1F4",
+    bgGradient: "linear-gradient(135deg, rgba(255, 241, 242, 0.85) 0%, rgba(255, 255, 255, 0.98) 45%, rgba(255, 228, 230, 0.6) 100%)",
+    textDark: "#BE123C",
+    badgeBg: "linear-gradient(135deg, #FF2E7E, #F43F5E)",
+    glowShadow: "0 4px 20px -2px rgba(244, 63, 94, 0.16), 0 2px 6px -1px rgba(244, 63, 94, 0.08)",
+  },
+  sunset: {
+    key: "sunset",
+    label: "Sunset Aura",
+    accent: "#F97316",
+    border: "#FDBA74",
+    bgLight: "#FFF7ED",
+    bgGradient: "linear-gradient(135deg, rgba(255, 237, 213, 0.85) 0%, rgba(255, 255, 255, 0.98) 45%, rgba(254, 215, 170, 0.6) 100%)",
+    textDark: "#C2410C",
+    badgeBg: "linear-gradient(135deg, #FB923C, #EA580C)",
+    glowShadow: "0 4px 20px -2px rgba(249, 115, 22, 0.16), 0 2px 6px -1px rgba(249, 115, 22, 0.08)",
+  },
+  violet: {
+    key: "violet",
+    label: "Cyber Violet",
+    accent: "#8B5CF6",
+    border: "#C4B5FD",
+    bgLight: "#F5F3FF",
+    bgGradient: "linear-gradient(135deg, rgba(243, 232, 255, 0.85) 0%, rgba(255, 255, 255, 0.98) 45%, rgba(233, 213, 255, 0.6) 100%)",
+    textDark: "#6D28D9",
+    badgeBg: "linear-gradient(135deg, #A855F7, #7C3AED)",
+    glowShadow: "0 4px 20px -2px rgba(139, 92, 246, 0.16), 0 2px 6px -1px rgba(139, 92, 246, 0.08)",
+  },
+  sky: {
+    key: "sky",
+    label: "Electric Sky",
+    accent: "#0284C7",
+    border: "#7DD3FC",
+    bgLight: "#F0F9FF",
+    bgGradient: "linear-gradient(135deg, rgba(224, 242, 254, 0.85) 0%, rgba(255, 255, 255, 0.98) 45%, rgba(186, 230, 253, 0.6) 100%)",
+    textDark: "#0369A1",
+    badgeBg: "linear-gradient(135deg, #38BDF8, #0284C7)",
+    glowShadow: "0 4px 20px -2px rgba(2, 132, 199, 0.16), 0 2px 6px -1px rgba(2, 132, 199, 0.08)",
+  },
+  mint: {
+    key: "mint",
+    label: "Neon Mint",
+    accent: "#10B981",
+    border: "#6EE7B7",
+    bgLight: "#ECFDF5",
+    bgGradient: "linear-gradient(135deg, rgba(209, 250, 229, 0.85) 0%, rgba(255, 255, 255, 0.98) 45%, rgba(167, 243, 208, 0.6) 100%)",
+    textDark: "#047857",
+    badgeBg: "linear-gradient(135deg, #34D399, #059669)",
+    glowShadow: "0 4px 20px -2px rgba(16, 185, 129, 0.16), 0 2px 6px -1px rgba(16, 185, 129, 0.08)",
+  },
+  amber: {
+    key: "amber",
+    label: "Golden Amber",
+    accent: "#D97706",
+    border: "#FCD34D",
+    bgLight: "#FFFBEB",
+    bgGradient: "linear-gradient(135deg, rgba(254, 243, 199, 0.85) 0%, rgba(255, 255, 255, 0.98) 45%, rgba(253, 230, 138, 0.6) 100%)",
+    textDark: "#92400E",
+    badgeBg: "linear-gradient(135deg, #FBBF24, #D97706)",
+    glowShadow: "0 4px 20px -2px rgba(217, 119, 6, 0.16), 0 2px 6px -1px rgba(217, 119, 6, 0.08)",
+  },
+};
+
+export const CAT_META: Record<string, { label: string; icon: string; bg: string; border: string; text: string }> = {
+  relationships: { label: "Relationships", icon: "❤️", bg: "#FFF1F4", border: "#FFE4E6", text: "#E11D48" },
+  work: { label: "Career", icon: "💼", bg: "#F5F3FF", border: "#EDE9FE", text: "#6D28D9" },
+  money: { label: "Money", icon: "💰", bg: "#FFFBEB", border: "#FEF3C7", text: "#B45309" },
+  family: { label: "Family", icon: "👨‍👩‍👧", bg: "#ECFDF5", border: "#D1FAE5", text: "#047857" },
+  random: { label: "Random", icon: "🎲", bg: "#EFF6FF", border: "#DBEAFE", text: "#1D4ED8" },
+};
+
+export function formatScore(n: number): string {
+  if (!n || isNaN(n)) return "0";
+  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+  return n.toString();
+}
+
+export function calcViews(post: Post): string {
+  const votes = (post.va || 0) + (post.vb || 0);
+  const reacts = Object.values(post.reactions || {}).reduce((a, b) => a + b, 0);
+  const totalEng = votes + reacts;
+  if (post.tier === "pin") {
+    const base = Math.max(25600, totalEng * 12 + 18000);
+    return formatScore(base);
+  }
+  if (post.tier === "glow") {
+    const base = Math.max(8400, totalEng * 10 + 6200);
+    return formatScore(base);
+  }
+  const base = Math.max(1200, totalEng * 8 + 450);
+  return formatScore(base);
+}
+
 export const C: Record<string, { a: string; t: string; d: string }> = {
   relationships: { a: "#F43F5E", t: "#FFF1F4", d: "#9F1239" },
   work: { a: "#0EA5E9", t: "#EFF9FE", d: "#075985" },

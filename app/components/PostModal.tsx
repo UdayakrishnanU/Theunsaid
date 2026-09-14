@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { BGS, bgCss, bgPos, bgSize, floorBidBase, rupee, topBidBase } from "@/lib/board-helpers";
+import { BGS, bgCss, bgPos, bgSize, floorBidBase, rupee, topBidBase, BOOSTED_SHADES } from "@/lib/board-helpers";
 import { CurrencyDef, dp, fromBase, toBase, Tier } from "@/lib/currency";
 import type { Post } from "@/lib/types";
 import { api } from "@/app/lib-client/api";
@@ -289,29 +289,17 @@ export default function PostModal({
         )}
 
         <div style={{ margin: "20px 0 4px" }}>
-          <div style={{ fontSize: 12.5, color: "var(--dim)", marginBottom: 8 }}>Background</div>
-          <div className="bgs">
-            {BGS.map(([key, label]) => (
-              <button
-                key={key}
-                className={"bgb" + (bg === key ? " on" : "")}
-                title={label}
-                aria-label={label}
-                onClick={() => setBg(key)}
-                style={{
-                  ["--a" as string]: "#F43F5E",
-                  backgroundColor: "#FFF1F4",
-                  backgroundImage: bgCss(key, "#F43F5E"),
-                  backgroundSize: bgSize(key),
-                  backgroundPosition: bgPos(key),
-                }}
-              />
-            ))}
-          </div>
-
-          <div style={{ fontSize: 12.5, color: "var(--dim)", margin: "18px 0 8px" }}>How should it appear?</div>
+          <div style={{ fontSize: 12.5, color: "var(--dim)", margin: "0 0 8px" }}>How should it appear?</div>
           <label className={"to" + (tier === "std" ? " on" : "")}>
-            <input type="radio" name="tr" checked={tier === "std"} onChange={() => setTier("std")} />
+            <input
+              type="radio"
+              name="tr"
+              checked={tier === "std"}
+              onChange={() => {
+                setTier("std");
+                if (BOOSTED_SHADES[bg]) setBg("plain");
+              }}
+            />
             <span style={{ flex: 1 }}>
               <span className="h">
                 <span>Standard</span>
@@ -321,7 +309,15 @@ export default function PostModal({
             </span>
           </label>
           <label className={"to" + (tier === "glow" ? " on" : "")}>
-            <input type="radio" name="tr" checked={tier === "glow"} onChange={() => setTier("glow")} />
+            <input
+              type="radio"
+              name="tr"
+              checked={tier === "glow"}
+              onChange={() => {
+                setTier("glow");
+                if (!BOOSTED_SHADES[bg]) setBg("rose");
+              }}
+            />
             <span style={{ flex: 1 }}>
               <span className="h">
                 <span>Boosted</span>
@@ -331,7 +327,15 @@ export default function PostModal({
             </span>
           </label>
           <label className={"to" + (tier === "pin" ? " on" : "")}>
-            <input type="radio" name="tr" checked={tier === "pin"} onChange={() => setTier("pin")} />
+            <input
+              type="radio"
+              name="tr"
+              checked={tier === "pin"}
+              onChange={() => {
+                setTier("pin");
+                if (BOOSTED_SHADES[bg]) setBg("plain");
+              }}
+            />
             <span style={{ flex: 1 }}>
               <span className="h">
                 <span>Pinned — top shelf</span>
@@ -357,6 +361,69 @@ export default function PostModal({
               )}
             </span>
           </label>
+
+          {/* Dynamic Background Selector: Boosted Shades vs Standard Patterns */}
+          {tier === "glow" ? (
+            <div style={{ margin: "18px 0 6px" }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Boosted Card Glow Shade</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "var(--dim)" }}>
+                  Visible on the board
+                </span>
+              </div>
+              <div className="boosted-shades-grid">
+                {Object.values(BOOSTED_SHADES).map((s) => {
+                  const on = bg === s.key;
+                  return (
+                    <button
+                      type="button"
+                      key={s.key}
+                      className={"shade-pill-btn" + (on ? " on" : "")}
+                      onClick={() => setBg(s.key)}
+                      style={{
+                        background: s.bgGradient,
+                        borderColor: on ? s.accent : s.border,
+                        boxShadow: on ? `0 0 0 2px ${s.accent}, 0 4px 12px ${s.accent}30` : undefined,
+                      }}
+                    >
+                      <span className="shade-circle" style={{ background: s.accent }} />
+                      <span className="shade-name" style={{ color: s.textDark, fontWeight: on ? 700 : 600 }}>
+                        {s.label}
+                      </span>
+                      {on && (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={s.accent} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}>
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : tier === "std" ? (
+            <div style={{ margin: "18px 0 4px" }}>
+              <div style={{ fontSize: 12.5, color: "var(--dim)", marginBottom: 8 }}>Background pattern</div>
+              <div className="bgs">
+                {BGS.map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={"bgb" + (bg === key ? " on" : "")}
+                    title={label}
+                    aria-label={label}
+                    onClick={() => setBg(key)}
+                    style={{
+                      ["--a" as string]: "#F43F5E",
+                      backgroundColor: "#FFF1F4",
+                      backgroundImage: bgCss(key, "#F43F5E"),
+                      backgroundSize: bgSize(key),
+                      backgroundPosition: bgPos(key),
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="tot">

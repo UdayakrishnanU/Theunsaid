@@ -538,7 +538,20 @@ export default function Board() {
                 const items =
                   shelf.length || sort === "trending"
                     ? [
-                        ...shelf.map((p) => <PinCard key={p.id} post={p} currency={curCode} onOpen={() => openDetail(p.id)} />),
+                        ...shelf.map((p) => (
+                          <PinCard
+                            key={p.id}
+                            post={p}
+                            currency={curCode}
+                            onOpen={() => openDetail(p.id)}
+                            onShare={() => handleShare(p)}
+                            onVote={(side) => handleVote(p.id, side)}
+                            onReact={(key) => handleReact(p.id, key)}
+                            onReport={() => handleReport(p.id)}
+                            votedSide={mine.votedSide(p.id)}
+                            reported={mine.hasReported(p.id)}
+                          />
+                        )),
                         ...Array.from({ length: Math.max(0, SLOTS - shelfAll.length) }, (_, i) => (
                           <EmptySlot key={"empty" + i} price={floorBase} currency={curCode} onClick={() => openM("confession", true)} />
                         )),
