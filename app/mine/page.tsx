@@ -82,27 +82,49 @@ export default function MinePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Fetches and merges EVERY held key, not just the primary one -- a key
+  // you restored earlier stays merged in on every future visit instead of
+  // only showing up right after the "Restore posts" click that added it.
+  // (Before this, a fresh page load re-fetched only `codes[0]`, so anything
+  // that came from an "also holding" key quietly vanished on reload.)
   async function reload(silent = false) {
-    if (!key) {
+    if (!codes.length) {
       setLoading(false);
       return;
     }
     if (!silent) setLoading(true);
     try {
-      const { posts, engaged } = await api.claim(key);
-      posts.forEach((p) => {
-        mine.addMine(p.id);
-        mine.recordOwner(p.id, key);
-      });
-      engaged.forEach((p) => {
-        if (p.yourVote) mine.recordVote(p.id, p.yourVote);
-        (p.yourReactions ?? []).forEach((r) => mine.recordReaction(p.id, r));
-      });
-      setPosts(posts);
-      setEngaged(engaged);
+      const results = await Promise.all(
+        codes.map((c) =>
+          api.claim(c).then(
+            (r) => ({ code: c, posts: r.posts, engaged: r.engaged }),
+            () => ({ code: c, posts: [] as OwnedPost[], engaged: [] as EngagedPost[] })
+          )
+        )
+      );
+      let mergedPosts: OwnedPost[] = [];
+      let mergedEngaged: EngagedPost[] = [];
+      for (const { code, posts: p, engaged: e } of results) {
+        p.forEach((post) => {
+          mine.addMine(post.id);
+          mine.recordOwner(post.id, code);
+        });
+        e.forEach((post) => {
+          if (post.yourVote) mine.recordVote(post.id, post.yourVote);
+          (post.yourReactions ?? []).forEach((r) => mine.recordReaction(post.id, r));
+        });
+        mergedPosts = [...mergedPosts, ...p.filter((post) => !mergedPosts.some((x) => x.id === post.id))];
+        mergedEngaged = mergeEngaged(e, mergedEngaged);
+      }
+      setPosts(mergedPosts);
+      setEngaged(mergedEngaged);
       if (!silent) {
-        setPrimaryOwnsAny(posts.length > 0 || engaged.length > 0);
-        noteFreshOutcomes([...posts, ...engaged]);
+        // Whether the PRIMARY key specifically owns anything -- restore()
+        // needs this to decide whether a freshly-restored key should become
+        // primary, so it has to reflect codes[0] alone, not the merged set.
+        const primary = results[0];
+        setPrimaryOwnsAny(!!primary && (primary.posts.length > 0 || primary.engaged.length > 0));
+        noteFreshOutcomes([...mergedPosts, ...mergedEngaged]);
       }
     } catch {
       if (!silent) {
@@ -118,7 +140,7 @@ export default function MinePage() {
   useEffect(() => {
     reload(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [codes]);
 
   // A payment that's still "processing" — because the tab was closed before
   // the webhook landed, or a resume happened elsewhere — used to just sit
@@ -127,7 +149,7 @@ export default function MinePage() {
   const pendingCount = posts.filter((p) => p.status === "pending_payment").length;
   const pollTries = useRef(0);
   useEffect(() => {
-    if (!pendingCount || !key) {
+    if (!pendingCount || !codes.length) {
       pollTries.current = 0;
       return;
     }
@@ -141,7 +163,7 @@ export default function MinePage() {
     }, 10000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingCount, key]);
+  }, [pendingCount, codes.length]);
 
   async function restore() {
     setClaimErr(null);
@@ -156,24 +178,15 @@ export default function MinePage() {
     }
     try {
       const { posts: hits, engaged: engagedHits } = await api.claim(v);
-      hits.forEach((p) => {
-        mine.addMine(p.id);
-        mine.recordOwner(p.id, v);
-      });
-      engagedHits.forEach((p) => {
-        if (p.yourVote) mine.recordVote(p.id, p.yourVote);
-        (p.yourReactions ?? []).forEach((r) => mine.recordReaction(p.id, r));
-      });
       // This browser's own key never posted or engaged with anything — the
       // key you're restoring is the one that actually matters, so make it
       // primary instead of leaving "Your key" pointing at an empty one.
       const promote = !primaryOwnsAny && (hits.length > 0 || engagedHits.length > 0);
-      addCode(v, promote);
-      if (promote) setPrimaryOwnsAny(true);
       setClaimIn("");
-      setPosts((cur) => [...hits, ...cur.filter((p) => !hits.some((h) => h.id === p.id))]);
-      setEngaged((cur) => mergeEngaged(engagedHits, cur));
-      noteFreshOutcomes([...hits, ...engagedHits]);
+      // Adding the code changes `codes`, which the reload effect above is
+      // keyed on — it re-fetches and re-merges every held key, this one
+      // included, so the merge itself happens there, not here.
+      addCode(v, promote);
     } catch (e) {
       setClaimErr(e instanceof Error ? e.message : "No posts found under that key.");
     }
