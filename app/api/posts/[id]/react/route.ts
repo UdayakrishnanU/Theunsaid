@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getOrCreateVoterId } from "@/lib/identity";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
+import { friendlyError } from "@/lib/apiError";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const voterId = await getOrCreateVoterId();
   const sb = supabaseAdmin();
   const { data, error } = await sb.rpc("add_reaction", { p_post_id: id, p_voter_id: voterId, p_reaction_key: parsed.data.key });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: friendlyError("react", error) }, { status: 500 });
   return NextResponse.json({ reactions: data });
 }

@@ -6,6 +6,7 @@ declare global {
     turnstile?: {
       render: (el: HTMLElement, opts: Record<string, unknown>) => string;
       remove: (id: string) => void;
+      reset: (id: string) => void;
     };
   }
 }
@@ -42,8 +43,18 @@ export default function TurnstileWidget({ onToken }: { onToken: (token: string |
         widgetId = window.turnstile.render(ref.current, {
           sitekey: siteKey,
           callback: (token: string) => onToken(token),
-          "expired-callback": () => onToken(null),
-          "error-callback": () => onToken(null),
+          // A token that expires (or a widget that errors) left the old
+          // token cleared but the widget frozen in that state — a retried
+          // submit kept failing Turnstile with no fresh challenge offered.
+          // Resetting it re-arms the widget so the next attempt can pass.
+          "expired-callback": () => {
+            onToken(null);
+            if (widgetId && window.turnstile) window.turnstile.reset(widgetId);
+          },
+          "error-callback": () => {
+            onToken(null);
+            if (widgetId && window.turnstile) window.turnstile.reset(widgetId);
+          },
         });
       })
       .catch(() => onToken(null));

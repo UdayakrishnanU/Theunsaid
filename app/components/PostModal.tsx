@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { BGS, bgCss, bgPos, bgSize, floorBidBase, rupee, topBidBase } from "@/lib/board-helpers";
 import { CurrencyDef, dp, fromBase, toBase, Tier } from "@/lib/currency";
 import type { Post } from "@/lib/types";
@@ -52,10 +52,41 @@ export default function PostModal({
   const [bidErr, setBidErr] = useState<string | null>(null);
   const [phase, setPhase] = useState<"form" | "paying" | "confirming">("form");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  // One id per time this modal opens. Retrying "Pay and post" without closing
+  // the modal (because the first attempt seemed to hang) reuses this same id,
+  // so the server can tell it's the same draft instead of creating a second
+  // post and a second Razorpay order for one intended submission.
+  const [idemKey, setIdemKey] = useState<string>(() => (typeof crypto !== "undefined" ? crypto.randomUUID() : Math.random().toString(36).slice(2)));
 
-  const floorBase = useMemo(() => floorBidBase(posts, currency.code), [posts, currency]);
-  const topBase = useMemo(() => topBidBase(posts, currency.code), [posts, currency]);
+  // Local estimate for the very first paint, refined immediately below by the
+  // real server-computed price (lib/pinPricing.ts) — never the other way
+  // around, so what's shown here can never drift from what POST /api/posts
+  // will actually accept.
+  const [floorBase, setFloorBase] = useState(() => floorBidBase(posts, currency.code));
+  const [topBase, setTopBase] = useState(() => topBidBase(posts, currency.code));
   const floorMajor = fromBase(floorBase, currency.code);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    api
+      .pinFloor(currency.code)
+      .then((r) => {
+        if (cancelled) return;
+        setFloorBase(r.floorBase);
+        setTopBase(r.topBase);
+        const realFloorMajor = fromBase(r.floorBase, currency.code);
+        setBidAmount((prev) => (prev && prev >= realFloorMajor ? prev : realFloorMajor));
+      })
+      .catch(() => {
+        // Network hiccup — keep the local estimate. The real check still
+        // happens server-side at submit time either way.
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, currency.code]);
 
   useEffect(() => {
     if (open) {
@@ -68,6 +99,7 @@ export default function PostModal({
       setPhase("form");
       setDetail("");
       setShowDetail(false);
+      setIdemKey(typeof crypto !== "undefined" ? crypto.randomUUID() : Math.random().toString(36).slice(2));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialType, wantPin]);
@@ -103,6 +135,7 @@ export default function PostModal({
         bidAmount: tier === "pin" ? bidAmount : undefined,
         ownerKey,
         turnstileToken: turnstileToken ?? undefined,
+        idempotencyKey: idemKey,
       });
       if (res.careFlag) {
         setCareFlag(true);
@@ -110,9 +143,7 @@ export default function PostModal({
         return;
       }
       if (!res.razorpayKeyId) {
-        setWarning(
-          "Payment isn't configured on this deployment yet (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are missing). The draft was created but nothing will be charged and it will stay pending until that's set — see DEPLOY.md."
-        );
+        setWarning("Payments aren't available on this deployment right now. Your draft was saved and won't be charged — try again in a few minutes.");
         setPhase("form");
         return;
       }
@@ -123,13 +154,23 @@ export default function PostModal({
         currency: res.order.currency,
         name: "AnonVerdict",
         description: type === "confession" ? "Confession" : "Dilemma",
-        onSuccess: async () => {
+        onSuccess: async ({ orderId, paymentId, signature }) => {
           setPhase("confirming");
+          try {
+            await api.confirmPayment(res.postId, { orderId, paymentId, signature });
+            onPosted({ postId: res.postId, ownerKey: res.ownerKey, type });
+            return;
+          } catch {
+            // Instant confirmation didn't go through (a network hiccup, most
+            // likely) — fall back to waiting for the webhook, which is still
+            // the authoritative path either way.
+          }
           const ok = await pollUntilLive(res.postId);
-          if (ok) onPosted({ postId: res.postId, ownerKey: res.ownerKey, type });
-          else {
+          if (ok) {
+            onPosted({ postId: res.postId, ownerKey: res.ownerKey, type });
+          } else {
             setWarning(
-              "Razorpay confirmed the charge but the board hasn't shown it live yet — it'll appear within a minute or two once the webhook lands. Check My posts."
+              "Razorpay confirmed the charge, but the post hasn't gone live here yet — that can take a couple of minutes. It'll show up on My posts as soon as it lands; if it's still stuck after 10 minutes, contact support with your recovery key and we'll sort it out."
             );
             setPhase("form");
           }
@@ -146,8 +187,11 @@ export default function PostModal({
   }
 
   async function pollUntilLive(postId: string): Promise<boolean> {
-    for (let i = 0; i < 14; i++) {
-      await new Promise((r) => setTimeout(r, 1500));
+    // ~55s total, backing off — long enough to cover a slow webhook delivery
+    // without leaving the customer staring at a spinner the whole time.
+    const delays = [1000, 1000, 1500, 1500, 2000, 2000, 2500, 3000, 3000, 3500, 4000, 4000, 5000, 5000, 5000, 5000];
+    for (const delay of delays) {
+      await new Promise((r) => setTimeout(r, delay));
       try {
         const r = await fetch(`/api/posts/${postId}/status`);
         const d = await r.json();
@@ -283,7 +327,7 @@ export default function PostModal({
             <input type="radio" name="tr" checked={tier === "glow"} onChange={() => setTier("glow")} />
             <span style={{ flex: 1 }}>
               <span className="h">
-                <span>Highlighted</span>
+                <span>Boosted</span>
                 <span>{currency.sym + currency.glow}</span>
               </span>
               <span className="d">Its own glowing card above the board for 24 hours.</span>
@@ -296,7 +340,7 @@ export default function PostModal({
                 <span>Pinned — top shelf</span>
                 <span>from {rupee(floorBase, currency.code)}</span>
               </span>
-              <span className="d">Beat the lowest live bid. The five highest hold the shelf.</span>
+              <span className="d">Beat the current highest bid to take the one shelf spot.</span>
               {tier === "pin" && (
                 <span className="bidbox" style={{ display: "block" }}>
                   <label>Your bid</label>

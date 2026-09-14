@@ -1,7 +1,14 @@
 // Ported from unsaid-v30.html's client-side `scan()`, kept as the fast first-pass
 // filter, plus a server-side OpenAI Moderation API call as the real backstop
 // (the prep doc's "Phase 1" item: "Replaces the regex filter").
-const PII = [/\b\d{10}\b/, /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/, /\b\d{4}\s?\d{4}\s?\d{4}\b/];
+// Broadened from a strict 10-digit-only match (India format) to common
+// international shapes too: an optional leading +country code, with the
+// usual space/dash/dot/paren separators between groups.
+const PII = [
+  /\+?\d[\d\s().-]{6,14}\d/,
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/,
+  /\b\d{4}\s?\d{4}\s?\d{4}\b/,
+];
 const CARE = [/suicide/i, /kill myself/i, /end my life/i, /want to die/i, /self.?harm/i, /cutting myself/i];
 const SLUR = ["kill you", "rape"];
 

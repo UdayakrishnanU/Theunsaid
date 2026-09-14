@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hashOwnerKey } from "@/lib/ownerKey";
 import { scan } from "@/lib/moderation";
+import { friendlyError } from "@/lib/apiError";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     .from("posts")
     .update({ outcome: { choice, note: note || null, at: Date.now() } })
     .eq("id", id);
-  if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
+  if (updErr) return NextResponse.json({ error: friendlyError("outcome", updErr) }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

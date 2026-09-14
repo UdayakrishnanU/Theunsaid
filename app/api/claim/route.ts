@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hashOwnerKey } from "@/lib/ownerKey";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
+import { friendlyError } from "@/lib/apiError";
 import type { Post } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -22,6 +23,17 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Enter a key first." }, { status: 400 });
 
   const sb = supabaseAdmin();
+
+  // Lazy cleanup: a payment draft nobody ever finished (checkout closed, or
+  // just abandoned) used to sit as "processing" on My posts forever with no
+  // way out. Anything still pending 24h later is treated as abandoned —
+  // this runs on every claim so no separate cron job is needed at this scale.
+  await sb
+    .from("posts")
+    .update({ status: "deleted" })
+    .eq("status", "pending_payment")
+    .lt("created_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString());
+
   const { data, error } = await sb
     .from("posts")
     .select("*")
@@ -29,7 +41,7 @@ export async function POST(req: NextRequest) {
     .eq("hidden", false)
     .neq("status", "deleted")
     .order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: friendlyError("claim", error) }, { status: 500 });
   if (!data || !data.length) return NextResponse.json({ error: "No posts found under that key." }, { status: 404 });
 
   const posts: (Post & { status: string })[] = data.map((r) => ({

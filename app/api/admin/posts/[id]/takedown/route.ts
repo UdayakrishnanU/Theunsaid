@@ -14,10 +14,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!parsed.success) return NextResponse.json({ error: "Invalid action." }, { status: 400 });
 
   const sb = supabaseAdmin();
-  const { error } = await sb
-    .from("posts")
-    .update({ hidden: parsed.data.action === "hide" })
-    .eq("id", id);
+  const hiding = parsed.data.action === "hide";
+  // status: "hidden"/"live" alongside the boolean, so a takedown is
+  // distinguishable from an owner's own delete (which sets status:
+  // "deleted" — see app/api/posts/[id] DELETE) everywhere the two used to
+  // look identical (My posts, the admin queue, support conversations).
+  let q = sb.from("posts").update({ hidden: hiding, status: hiding ? "hidden" : "live" }).eq("id", id);
+  if (!hiding) q = q.eq("status", "hidden"); // don't resurrect a post the author deleted or one still pending payment
+  const { error } = await q;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

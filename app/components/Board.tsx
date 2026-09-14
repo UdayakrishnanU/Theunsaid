@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CATS,
   SLOTS,
@@ -65,11 +65,36 @@ export default function Board() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [voteOpen, setVoteOpen] = useState(false);
   const [savedInfo, setSavedInfo] = useState<{ code: string; kind: string } | null>(null);
+  const [savedInfoCopied, setSavedInfoCopied] = useState(false);
   const [votedToday, setVotedToday] = useState(0);
 
   const [shareData, setShareData] = useState<ShareCardData | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareVariant, setShareVariant] = useState<CardVariant>("curiosity");
+
+  // A single choke-point so a double-tap or an impatient repeat click on a
+  // vote/react/report control can't fire the request twice while the first
+  // one is still in flight, instead of trying to debounce every button.
+  const actionCooldown = useRef<Map<string, number>>(new Map());
+  const ACTION_COOLDOWN_MS = 800;
+  const inCooldown = useCallback((key: string) => {
+    const now = Date.now();
+    const last = actionCooldown.current.get(key) || 0;
+    if (now - last < ACTION_COOLDOWN_MS) return true;
+    actionCooldown.current.set(key, now);
+    return false;
+  }, []);
+
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3200);
+  }, []);
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  }, []);
 
   useEffect(() => {
     const handler = () => openM("confession");
@@ -134,7 +159,13 @@ export default function Board() {
     d.setHours(0, 0, 0, 0);
     return d.getTime();
   }, [now]);
-  let pool = win === "today" ? all.filter((p) => p.at > cut) : all;
+  const todayPool = all.filter((p) => p.at > cut);
+  // "Today" can genuinely be empty on a quiet day or a new site — instead of
+  // a bare "nobody has posted today" dead end, fall back to the full board
+  // but say plainly that's what happened, so the feed still has something
+  // worth reading and the "today" count never lies about what's on screen.
+  const usingRecentHighlights = win === "today" && todayPool.length === 0 && all.length > 0;
+  let pool = win === "today" ? todayPool : all;
   if (!pool.length) pool = all;
   const base = query ? all : pool;
   let view = cat === "all" ? base : base.filter((p) => p.category === cat);
@@ -215,26 +246,62 @@ export default function Board() {
     window.history.replaceState(null, "", window.location.pathname);
   }
 
-  async function handleVote(id: string, side: "a" | "b") {
-    const { va, vb, alreadyVoted } = await api.vote(id, side);
-    if (!alreadyVoted) {
-      mine.recordVote(id, side);
-      bumpVotedToday();
-      setPosts((cur) => cur.map((p) => (p.id === id ? { ...p, va, vb } : p)));
+  async function handleVote(id: string, side: "a" | "b"): Promise<{ va: number; vb: number; failed?: boolean }> {
+    const existing = posts.find((p) => p.id === id);
+    if (mine.votedSide(id)) return { va: existing?.va ?? 0, vb: existing?.vb ?? 0 };
+    if (inCooldown(`vote:${id}`)) return { va: existing?.va ?? 0, vb: existing?.vb ?? 0 };
+    const prevVa = existing?.va ?? 0;
+    const prevVb = existing?.vb ?? 0;
+    // Optimistic: mark it voted and bump the tally right away so the bar
+    // moves the instant you tap, then reconcile with the server's real
+    // numbers — or roll all of this back if the request never lands.
+    mine.recordVote(id, side);
+    bumpVotedToday();
+    setPosts((cur) =>
+      cur.map((p) => (p.id === id ? { ...p, va: prevVa + (side === "a" ? 1 : 0), vb: prevVb + (side === "b" ? 1 : 0) } : p))
+    );
+    try {
+      const { va, vb, alreadyVoted } = await api.vote(id, side);
+      if (!alreadyVoted) setPosts((cur) => cur.map((p) => (p.id === id ? { ...p, va, vb } : p)));
+      return { va, vb };
+    } catch {
+      mine.clearVote(id);
+      setPosts((cur) => cur.map((p) => (p.id === id ? { ...p, va: prevVa, vb: prevVb } : p)));
+      showToast("Your vote didn't go through — try again.");
+      return { va: prevVa, vb: prevVb, failed: true };
     }
-    return { va, vb };
   }
   async function handleReact(id: string, key: string) {
     if (mine.hasReacted(id, key)) return;
-    const { reactions } = await api.react(id, key);
+    if (inCooldown(`react:${id}:${key}`)) return;
+    const existing = posts.find((p) => p.id === id);
+    const prevReactions = existing?.reactions ?? {};
     mine.recordReaction(id, key);
-    setPosts((cur) => cur.map((p) => (p.id === id ? { ...p, reactions } : p)));
+    setPosts((cur) =>
+      cur.map((p) =>
+        p.id === id ? { ...p, reactions: { ...(p.reactions || {}), [key]: ((p.reactions || {})[key] || 0) + 1 } } : p
+      )
+    );
+    try {
+      const { reactions } = await api.react(id, key);
+      setPosts((cur) => cur.map((p) => (p.id === id ? { ...p, reactions } : p)));
+    } catch {
+      mine.clearReaction(id, key);
+      setPosts((cur) => cur.map((p) => (p.id === id ? { ...p, reactions: prevReactions } : p)));
+      showToast("That reaction didn't go through — try again.");
+    }
   }
   async function handleReport(id: string) {
     if (mine.hasReported(id)) return;
-    const { hidden } = await api.report(id);
+    if (inCooldown(`report:${id}`)) return;
     mine.recordReport(id);
-    if (hidden) setPosts((cur) => cur.filter((p) => p.id !== id));
+    try {
+      const { hidden } = await api.report(id);
+      if (hidden) setPosts((cur) => cur.filter((p) => p.id !== id));
+    } catch {
+      mine.clearReport(id);
+      showToast("That report didn't go through — try again.");
+    }
   }
   function openShareStudio(p: Post, initialVar: CardVariant = "curiosity") {
     const t = vsum(p);
@@ -278,33 +345,56 @@ export default function Board() {
         </div>
 
         <div className="closest-call-carousel-wrapper">
-          <Carousel
-            className="closest-call-carousel"
-            trackClassName="closest-call-track"
-            count={closestCalls.length}
-            autoAdvanceMs={8000}
-            ariaLabel="Closest calls today"
-            showArrows={closestCalls.length > 1}
-            showDots={closestCalls.length > 1}
-          >
-            {closestCalls.map((p, idx) => (
-              <div className="closest-call-slide" key={p ? p.id : "default-" + idx}>
-                <ClosestCallCard
-                  post={p}
-                  slideIndex={idx + 1}
-                  totalSlides={closestCalls.length}
-                  onVote={handleVote}
-                  votedSide={p ? mine.votedSide(p.id) : undefined}
-                  onOpen={(postId) => openDetail(postId)}
-                  onShare={(sharePayload) => {
-                    setShareData(sharePayload);
-                    setShareVariant("split");
-                    setShareOpen(true);
-                  }}
-                />
+          {loading ? (
+            // Reserves the exact box the real card (or the demo one, before
+            // any votes exist) renders into, so nothing jumps or flashes from
+            // a placeholder dilemma into a different real one once data
+            // arrives — same card shell, just shimmering instead of read.
+            <div className="closest-call-card closest-call-skeleton" aria-hidden="true">
+              <div className="closest-call-content">
+                <div className="skel-line skel-badge" />
+                <div className="skel-line skel-line-lg" />
+                <div className="skel-line skel-line-lg" style={{ width: "70%" }} />
+                <div className="skel-line skel-line-sm" />
+                <div className="skel-line skel-line-sm" style={{ width: "55%" }} />
+                <div style={{ display: "flex", gap: 12, marginTop: 22 }}>
+                  <div className="skel-pill" />
+                  <div className="skel-pill" style={{ width: 150 }} />
+                </div>
               </div>
-            ))}
-          </Carousel>
+              <div className="closest-call-gauge-wrap">
+                <div className="donut-gauge skel" />
+              </div>
+            </div>
+          ) : (
+            <Carousel
+              className="closest-call-carousel"
+              trackClassName="closest-call-track"
+              count={closestCalls.length}
+              autoAdvanceMs={8000}
+              ariaLabel="Closest calls today"
+              showArrows={closestCalls.length > 1}
+              showDots={closestCalls.length > 1}
+            >
+              {closestCalls.map((p, idx) => (
+                <div className="closest-call-slide" key={p ? p.id : "default-" + idx}>
+                  <ClosestCallCard
+                    post={p}
+                    slideIndex={idx + 1}
+                    totalSlides={closestCalls.length}
+                    onVote={handleVote}
+                    votedSide={p ? mine.votedSide(p.id) : undefined}
+                    onOpen={(postId) => openDetail(postId)}
+                    onShare={(sharePayload) => {
+                      setShareData(sharePayload);
+                      setShareVariant("split");
+                      setShareOpen(true);
+                    }}
+                  />
+                </div>
+              ))}
+            </Carousel>
+          )}
         </div>
 
         <div className="h-cta">
@@ -439,16 +529,18 @@ export default function Board() {
                     ? `Every slot is open right now. ${rupee(floorBase, curCode)} puts you at #1 for 24 hours.`
                     : shelfAll.length < SLOTS
                     ? `${SLOTS - shelfAll.length} of ${SLOTS} slots still open from ${rupee(floorBase, curCode)}.`
-                    : "The five highest bids hold the shelf for 24 hours."
+                    : SLOTS === 1
+                    ? "The highest bid holds the shelf for 24 hours."
+                    : `The ${SLOTS} highest bids hold the shelf for 24 hours.`
                   : `Showing ${shelf.length} of ${shelfAll.length} pinned that match this filter.`}
               </p>
               {(() => {
                 const items =
                   shelf.length || sort === "trending"
                     ? [
-                        ...shelf.map((p, i) => <PinCard key={p.id} post={p} index={i} currency={curCode} onOpen={() => openDetail(p.id)} />),
+                        ...shelf.map((p) => <PinCard key={p.id} post={p} currency={curCode} onOpen={() => openDetail(p.id)} />),
                         ...Array.from({ length: Math.max(0, SLOTS - shelfAll.length) }, (_, i) => (
-                          <EmptySlot key={"empty" + i} n={shelfAll.length + i + 1} price={floorBase} currency={curCode} onClick={() => openM("confession", true)} />
+                          <EmptySlot key={"empty" + i} price={floorBase} currency={curCode} onClick={() => openM("confession", true)} />
                         )),
                       ]
                     : [
@@ -475,10 +567,11 @@ export default function Board() {
               </h2>
               <span className="m">
                 {nf(rest.length)} {rest.length === 1 ? "post" : "posts"}
-                {win === "today" ? " today" : ""}
+                {win === "today" && !usingRecentHighlights ? " today" : ""}
               </span>
             </div>
             <p className="sect-note">
+              {usingRecentHighlights ? "Nothing new today yet — here are recent highlights instead. " : ""}
               {sort === "new"
                 ? "Newest first. Fresh posts land here the moment they are paid for."
                 : sort === "needy"
@@ -563,6 +656,7 @@ export default function Board() {
         onClose={() => setPostModal((m) => ({ ...m, open: false }))}
         onPosted={({ postId, ownerKey: ok, type }) => {
           mine.addMine(postId);
+          mine.recordOwner(postId, ok);
           setPostModal((m) => ({ ...m, open: false }));
           setSavedInfo({ code: ok, kind: type });
           refresh();
@@ -572,7 +666,7 @@ export default function Board() {
       <DetailModal
         post={detailPost}
         isMine={detailPost ? mine.isMine(detailPost.id) : false}
-        ownerKey={ownerKey}
+        ownerKey={(detailPost && mine.ownerKeyFor(detailPost.id)) || ownerKey}
         onShelf={detailOnShelf}
         currency={curCode}
         votedSide={detailPost ? mine.votedSide(detailPost.id) : undefined}
@@ -612,9 +706,11 @@ export default function Board() {
                 className="btn"
                 onClick={() => {
                   navigator.clipboard?.writeText(savedInfo.code).catch(() => {});
+                  setSavedInfoCopied(true);
+                  setTimeout(() => setSavedInfoCopied(false), 1600);
                 }}
               >
-                Copy key
+                {savedInfoCopied ? "Copied" : "Copy key"}
               </button>
             </div>
           </div>
@@ -627,6 +723,12 @@ export default function Board() {
         initialVariant={shareVariant}
         onClose={() => setShareOpen(false)}
       />
+
+      {toast && (
+        <div className="board-toast" role="status">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

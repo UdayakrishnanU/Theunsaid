@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyWebhookSignature } from "@/lib/razorpay";
+import { markOrderPaid } from "@/lib/paymentConfirm";
 
 export const runtime = "nodejs";
 
@@ -36,34 +37,14 @@ export async function POST(req: NextRequest) {
 
   const sb = supabaseAdmin();
 
-  const { data: order, error: orderErr } = await sb
-    .from("payment_orders")
-    .select("*")
-    .eq("id", orderId)
-    .single();
-  if (orderErr || !order) {
-    // Unknown order — don't 500 (Razorpay will keep retrying forever); just log-worthy no-op.
+  // markOrderPaid() is the same function the instant client-side confirmation
+  // (app/api/posts/[id]/confirm) uses — idempotent either way, so whichever
+  // of the two arrives first wins and this is just a no-op for the other.
+  const result = await markOrderPaid(sb, orderId, paymentId ?? null);
+  if (!result.ok && result.error === "Unknown order.") {
+    // Don't 500 (Razorpay will keep retrying forever); just a log-worthy no-op.
     return NextResponse.json({ ok: true, ignored: "unknown order" });
   }
-  if (order.status === "paid") {
-    return NextResponse.json({ ok: true, already: true }); // idempotent — webhooks can be delivered more than once
-  }
-
-  const { error: payErr } = await sb
-    .from("payment_orders")
-    .update({ status: "paid", razorpay_payment_id: paymentId, paid_at: new Date().toISOString() })
-    .eq("id", orderId);
-  if (payErr) return NextResponse.json({ error: payErr.message }, { status: 500 });
-
-  const { data: post } = await sb.from("posts").select("tier").eq("id", order.post_id).single();
-  const until = post && post.tier !== "std" ? new Date(Date.now() + 24 * 3600 * 1000).toISOString() : null;
-
-  const { error: postErr } = await sb
-    .from("posts")
-    .update({ status: "live", paid_at: new Date().toISOString(), until })
-    .eq("id", order.post_id)
-    .eq("status", "pending_payment"); // guard: don't resurrect a post the author already deleted
-  if (postErr) return NextResponse.json({ error: postErr.message }, { status: 500 });
-
-  return NextResponse.json({ ok: true });
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 500 });
+  return NextResponse.json({ ok: true, already: result.alreadyPaid ?? false });
 }

@@ -1,47 +1,77 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOwnerKey } from "@/app/hooks/useOwnerKey";
+import { useMine } from "@/app/hooks/useMine";
 import { api } from "@/app/lib-client/api";
+import { openRazorpayCheckout } from "@/app/lib-client/razorpayCheckout";
 import { ago, nf, rsum, vsum } from "@/lib/board-helpers";
 import type { Post } from "@/lib/types";
 
 export default function MinePage() {
   const router = useRouter();
   const { key, codes, ensure, addCode } = useOwnerKey();
+  const mine = useMine();
   const [posts, setPosts] = useState<(Post & { status: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [claimIn, setClaimIn] = useState("");
   const [claimErr, setClaimErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionErr, setActionErr] = useState<string | null>(null);
 
   useEffect(() => {
     ensure();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function reload(silent = false) {
+    if (!key) {
+      setLoading(false);
+      return;
+    }
+    if (!silent) setLoading(true);
+    try {
+      const { posts } = await api.claim(key);
+      posts.forEach((p) => {
+        mine.addMine(p.id);
+        mine.recordOwner(p.id, key);
+      });
+      setPosts(posts);
+    } catch {
+      if (!silent) setPosts([]);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      if (!key) {
-        setLoading(false);
+    reload(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  // A payment that's still "processing" — because the tab was closed before
+  // the webhook landed, or a resume happened elsewhere — used to just sit
+  // there forever unless you manually refreshed. Quietly re-check for you
+  // while any post is in that state, instead of making that your job.
+  const pendingCount = posts.filter((p) => p.status === "pending_payment").length;
+  const pollTries = useRef(0);
+  useEffect(() => {
+    if (!pendingCount || !key) {
+      pollTries.current = 0;
+      return;
+    }
+    const t = setInterval(() => {
+      pollTries.current += 1;
+      if (pollTries.current > 12) {
+        clearInterval(t);
         return;
       }
-      setLoading(true);
-      try {
-        const { posts } = await api.claim(key);
-        if (!cancelled) setPosts(posts);
-      } catch {
-        if (!cancelled) setPosts([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [key]);
+      reload(true);
+    }, 10000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingCount, key]);
 
   async function restore() {
     setClaimErr(null);
@@ -56,6 +86,10 @@ export default function MinePage() {
     }
     try {
       const { posts: hits } = await api.claim(v);
+      hits.forEach((p) => {
+        mine.addMine(p.id);
+        mine.recordOwner(p.id, v);
+      });
       addCode(v);
       setClaimIn("");
       setPosts((cur) => [...hits, ...cur.filter((p) => !hits.some((h) => h.id === p.id))]);
@@ -64,13 +98,69 @@ export default function MinePage() {
     }
   }
 
+  function keyFor(id: string): string | null {
+    return mine.ownerKeyFor(id) || key || null;
+  }
+
   async function del(id: string) {
-    if (!key) return;
+    const k = keyFor(id);
+    if (!k) return;
     try {
-      await api.deletePost(id, key);
+      await api.deletePost(id, k);
       setPosts((cur) => cur.filter((p) => p.id !== id));
     } catch {
       /* ignore */
+    }
+  }
+
+  async function cancelPending(id: string) {
+    setActionErr(null);
+    const k = keyFor(id);
+    if (!k) return;
+    setBusyId(id);
+    try {
+      await api.deletePost(id, k);
+      setPosts((cur) => cur.filter((p) => p.id !== id));
+    } catch (e) {
+      setActionErr(e instanceof Error ? e.message : "Could not cancel that draft.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function resume(id: string) {
+    setActionErr(null);
+    const k = keyFor(id);
+    if (!k) return;
+    setBusyId(id);
+    try {
+      const res = await api.resumePayment(id, k);
+      if (!res.razorpayKeyId) {
+        setActionErr("Payments aren't available on this deployment right now.");
+        setBusyId(null);
+        return;
+      }
+      await openRazorpayCheckout({
+        keyId: res.razorpayKeyId,
+        orderId: res.order.id,
+        amount: res.order.amount,
+        currency: res.order.currency,
+        name: "AnonVerdict",
+        description: "Resume payment",
+        onSuccess: async ({ orderId, paymentId, signature }) => {
+          try {
+            await api.confirmPayment(id, { orderId, paymentId, signature });
+          } catch {
+            /* the webhook still catches it either way */
+          }
+          setBusyId(null);
+          reload(true);
+        },
+        onDismiss: () => setBusyId(null),
+      });
+    } catch (e) {
+      setActionErr(e instanceof Error ? e.message : "Could not resume that payment.");
+      setBusyId(null);
     }
   }
 
@@ -118,6 +208,8 @@ export default function MinePage() {
         {claimErr && <div className="rerr show">{claimErr}</div>}
       </div>
 
+      {actionErr && <div className="rerr show">{actionErr}</div>}
+
       <div>
         {loading ? (
           <div className="sk">
@@ -137,15 +229,28 @@ export default function MinePage() {
                 <span>{ago(p.at)}</span>
                 <span>{nf(rsum(p))} reactions</span>
                 {p.type === "dilemma" && <span>{nf(vsum(p))} votes</span>}
-                {p.status === "pending_payment" && <span>processing payment</span>}
+                {p.status === "pending_payment" && <span>processing payment — checking every few seconds</span>}
                 {p.outcome && <span>outcome posted</span>}
               </div>
               <div className="acts">
-                <button onClick={() => router.push("/#p=" + p.id)}>Open</button>
-                <button onClick={() => copyLink(p.id)}>Copy link</button>
-                <button style={{ color: "#B91C1C" }} onClick={() => del(p.id)}>
-                  Delete
-                </button>
+                {p.status === "pending_payment" ? (
+                  <>
+                    <button disabled={busyId === p.id} onClick={() => resume(p.id)}>
+                      {busyId === p.id ? "Opening…" : "Resume payment"}
+                    </button>
+                    <button disabled={busyId === p.id} style={{ color: "#B91C1C" }} onClick={() => cancelPending(p.id)}>
+                      Cancel draft
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => router.push("/#p=" + p.id)}>Open</button>
+                    <button onClick={() => copyLink(p.id)}>Copy link</button>
+                    <button style={{ color: "#B91C1C" }} onClick={() => del(p.id)}>
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))

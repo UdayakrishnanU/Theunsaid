@@ -14,11 +14,13 @@ export default function VoteModal({
   queue: Post[];
   votedToday: number;
   onClose: () => void;
-  onVote: (id: string, side: "a" | "b") => Promise<{ va: number; vb: number }>;
+  onVote: (id: string, side: "a" | "b") => Promise<{ va: number; vb: number; failed?: boolean }>;
 }) {
   const [idx, setIdx] = useState(0);
   const [done, setDone] = useState(0);
   const [result, setResult] = useState<{ side: "a" | "b"; va: number; vb: number } | null>(null);
+  const [voting, setVoting] = useState(false);
+  const [voteErr, setVoteErr] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -26,6 +28,8 @@ export default function VoteModal({
       setIdx(0);
       setDone(0);
       setResult(null);
+      setVoting(false);
+      setVoteErr(null);
     }
     return () => {
       if (timer.current) clearTimeout(timer.current);
@@ -37,9 +41,16 @@ export default function VoteModal({
   const p = queue[idx];
 
   async function vote(side: "a" | "b") {
-    if (!p) return;
-    const { va, vb } = await onVote(p.id, side);
-    setResult({ side, va, vb });
+    if (!p || voting) return;
+    setVoting(true);
+    setVoteErr(null);
+    const r = await onVote(p.id, side);
+    setVoting(false);
+    if (r.failed) {
+      setVoteErr("That vote didn't go through. Try again, or skip this one.");
+      return;
+    }
+    setResult({ side, va: r.va, vb: r.vb });
     setDone((d) => d + 1);
     timer.current = setTimeout(() => {
       setResult(null);
@@ -50,6 +61,7 @@ export default function VoteModal({
   function next() {
     if (timer.current) clearTimeout(timer.current);
     setResult(null);
+    setVoteErr(null);
     setIdx((i) => i + 1);
   }
 
@@ -134,16 +146,25 @@ export default function VoteModal({
             <div className="vmcat">{p.category}</div>
             <p className="vmq">{p.text}</p>
             <div className="vmopts">
-              <button className="vmo" onClick={() => vote("a")}>
+              <button className="vmo" onClick={() => vote("a")} disabled={voting}>
                 <span>{p.oa}</span>
               </button>
-              <button className="vmo" onClick={() => vote("b")}>
+              <button className="vmo" onClick={() => vote("b")} disabled={voting}>
                 <span>{p.ob}</span>
               </button>
             </div>
-            <p className="vmhint">
-              {nf(p.va + p.vb)} {p.va + p.vb === 1 ? "person has" : "people have"} already picked a side
-            </p>
+            {voteErr ? (
+              <div className="vmerr">
+                <p>{voteErr}</p>
+                <button className="btn gh" onClick={next}>
+                  Skip this one
+                </button>
+              </div>
+            ) : (
+              <p className="vmhint">
+                {nf(p.va + p.vb)} {p.va + p.vb === 1 ? "person has" : "people have"} already picked a side
+              </p>
+            )}
           </>
         )}
       </div>

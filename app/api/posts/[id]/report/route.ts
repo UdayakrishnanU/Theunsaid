@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getOrCreateVoterId } from "@/lib/identity";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
+import { friendlyError } from "@/lib/apiError";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const reporterId = await getOrCreateVoterId();
   const sb = supabaseAdmin();
   const { data, error } = await sb.rpc("file_report", { p_post_id: id, p_reporter_id: reporterId, p_reason: null });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: friendlyError("report", error) }, { status: 500 });
   const row = Array.isArray(data) ? data[0] : data;
   return NextResponse.json({ reports: row?.reports ?? 0, hidden: row?.hidden ?? false });
 }

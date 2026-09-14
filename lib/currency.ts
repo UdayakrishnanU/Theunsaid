@@ -27,7 +27,12 @@ export const CUR: Record<CurrencyCode, CurrencyDef> = {
 };
 
 const ZONE2CUR: Record<string, CurrencyCode> = {
-  "Asia/Kolkata": "INR", "Asia/Calcutta": "INR", "Europe/London": "GBP", "Asia/Dubai": "AED",
+  "Asia/Kolkata": "INR", "Asia/Calcutta": "INR",
+  // Every IANA zone the UK actually uses — not just Europe/London — so
+  // Belfast, the Isle of Man and the Channel Islands see GBP instead of
+  // falling through to the generic "Europe = EUR" rule below.
+  "Europe/London": "GBP", "Europe/Belfast": "GBP", "Europe/Isle_of_Man": "GBP", "Europe/Jersey": "GBP", "Europe/Guernsey": "GBP",
+  "Asia/Dubai": "AED",
   "Asia/Singapore": "SGD", "Australia/Sydney": "AUD", "Australia/Melbourne": "AUD",
   "America/Toronto": "CAD", "America/Vancouver": "CAD",
 };

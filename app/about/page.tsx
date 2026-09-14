@@ -33,7 +33,7 @@ export default function AboutPage() {
             {def.glow}
           </span>
           <span>
-            <strong>Highlighted</strong>
+            <strong>Boosted</strong>
             <span className="d">Its own glowing card above the board for 24 hours.</span>
           </span>
         </div>
@@ -45,8 +45,7 @@ export default function AboutPage() {
           <span>
             <strong>Pinned</strong>
             <span className="d">
-              Bid for one of five shelf slots. The five highest bids hold the top for 24 hours. No upper limit, no refunds, and you can be
-              outbid.
+              Bid to hold the single pinned shelf spot for 24 hours. No upper limit, no refunds, and you can be outbid.
             </span>
           </span>
         </div>

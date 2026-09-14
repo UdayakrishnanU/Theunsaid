@@ -28,7 +28,7 @@ export async function openRazorpayCheckout(opts: {
   currency: string;
   name: string;
   description: string;
-  onSuccess: () => void;
+  onSuccess: (resp: { orderId: string; paymentId: string; signature: string }) => void;
   onDismiss: () => void;
 }): Promise<void> {
   await loadScript();
@@ -51,7 +51,8 @@ export async function openRazorpayCheckout(opts: {
     name: opts.name,
     description: opts.description,
     order_id: opts.orderId,
-    handler: () => opts.onSuccess(),
+    handler: (resp: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) =>
+      opts.onSuccess({ orderId: resp.razorpay_order_id, paymentId: resp.razorpay_payment_id, signature: resp.razorpay_signature }),
     modal: { ondismiss: () => opts.onDismiss() },
     theme: { color: "#171A21" },
     ...(isInr

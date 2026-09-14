@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
-import { CUR, CurrencyCode, toBase, minBidBase, BID_STEP } from "@/lib/currency";
+import { CUR, CurrencyCode, toBase } from "@/lib/currency";
+import { computePinFloor } from "@/lib/pinPricing";
+import { friendlyError } from "@/lib/apiError";
 import { scan, moderateServerSide } from "@/lib/moderation";
 import { hashOwnerKey, mkOwnerCode } from "@/lib/ownerKey";
 import { createOrder } from "@/lib/razorpay";
@@ -46,7 +48,7 @@ export async function GET() {
     .eq("hidden", false)
     .order("created_at", { ascending: false })
     .limit(1000);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: friendlyError("posts.get", error) }, { status: 500 });
   return NextResponse.json({ posts: (data ?? []).map(rowToPost) });
 }
 
@@ -57,15 +59,18 @@ const bodySchema = z
   .object({
     type: z.enum(["confession", "dilemma"]),
     category: z.enum(CATEGORIES),
-    text: z.string().min(1).max(800),
-    optionA: z.string().max(22).optional(),
-    optionB: z.string().max(22).optional(),
+    // .trim() first so whitespace-only text/options can't slip past a fast or
+    // modified client that skips the same check the form already does.
+    text: z.string().trim().min(1).max(800),
+    optionA: z.string().trim().min(1).max(22).optional(),
+    optionB: z.string().trim().min(1).max(22).optional(),
     bg: z.string().max(20).default("plain"),
     tier: z.enum(["std", "glow", "pin"]).default("std"),
     currency: z.enum(CURRENCIES as [CurrencyCode, ...CurrencyCode[]]),
     bidAmount: z.number().positive().optional(), // in major currency units, tier==='pin' only
     ownerKey: z.string().min(4).max(16).optional(), // existing device key, if the poster already has one
     turnstileToken: z.string().optional(),
+    idempotencyKey: z.string().min(8).max(64).optional(), // one per modal-open, see PostModal.tsx
   })
   .refine((d) => d.type !== "dilemma" || (d.optionA && d.optionB), {
     message: "Dilemmas need both options.",
@@ -90,7 +95,10 @@ export async function POST(req: NextRequest) {
 
   const humanCheck = await verifyTurnstile(b.turnstileToken, ip);
   if (!humanCheck) {
-    return NextResponse.json({ error: "That didn't pass the bot check — reload and try again." }, { status: 400 });
+    return NextResponse.json(
+      { error: "That didn't pass our bot check. If an ad-blocker or privacy extension is active, try disabling it for this site — no need to reload." },
+      { status: 400 }
+    );
   }
 
   const combined = [b.text, b.optionA, b.optionB].filter(Boolean).join(" ");
@@ -111,19 +119,10 @@ export async function POST(req: NextRequest) {
   // Price it.
   let amountMajor: number;
   if (b.tier === "pin") {
-    const { data: shelfRows } = await sb
-      .from("posts")
-      .select("paid_base")
-      .eq("status", "live")
-      .eq("tier", "pin")
-      .gt("until", new Date().toISOString())
-      .order("paid_base", { ascending: false })
-      .limit(5);
-    const shelf = shelfRows ?? [];
-    const floorBase =
-      shelf.length < 5
-        ? minBidBase(b.currency)
-        : Math.max((shelf[shelf.length - 1].paid_base as number) + BID_STEP, minBidBase(b.currency));
+    // Same computation the create-post form used to show its floor price —
+    // see lib/pinPricing.ts — so a bid that was accepted as "enough" there
+    // can never be rejected here for a different number.
+    const { floorBase } = await computePinFloor(sb, b.currency);
     const bidBase = b.bidAmount ? toBase(b.bidAmount, b.currency) : 0;
     if (!b.bidAmount || bidBase < floorBase) {
       return NextResponse.json(
@@ -140,24 +139,54 @@ export async function POST(req: NextRequest) {
 
   const ownerCode = b.ownerKey || mkOwnerCode();
   const ownerKeyHash = hashOwnerKey(ownerCode);
-  const postId = "p" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 
-  const { error: insertErr } = await sb.from("posts").insert({
-    id: postId,
-    type: b.type,
-    category: b.category,
-    text: b.text,
-    option_a: b.optionA ?? null,
-    option_b: b.optionB ?? null,
-    bg: b.bg,
-    tier: b.tier,
-    status: "pending_payment",
-    owner_key_hash: ownerKeyHash,
-    currency: b.currency,
-    paid_amount_minor: amountMinor,
-    paid_base: paidBase,
-  });
-  if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 });
+  // A retried submit (same modal, same idempotency key) reuses whatever
+  // draft the first attempt already created instead of making a second post
+  // — see PostModal.tsx. A key that already belongs to a *live* post means
+  // the first attempt actually succeeded; don't post it again.
+  let postId: string;
+  let reusingDraft = false;
+  if (b.idempotencyKey) {
+    const { data: existing } = await sb
+      .from("posts")
+      .select("id, status")
+      .eq("idempotency_key", b.idempotencyKey)
+      .maybeSingle();
+    if (existing?.status === "live") {
+      return NextResponse.json(
+        { error: "This already went live — check My posts instead of posting it again.", alreadyLive: true, postId: existing.id },
+        { status: 409 }
+      );
+    }
+    if (existing?.status === "pending_payment") {
+      postId = existing.id;
+      reusingDraft = true;
+    } else {
+      postId = "p" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+    }
+  } else {
+    postId = "p" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  }
+
+  if (!reusingDraft) {
+    const { error: insertErr } = await sb.from("posts").insert({
+      id: postId,
+      type: b.type,
+      category: b.category,
+      text: b.text,
+      option_a: b.optionA ?? null,
+      option_b: b.optionB ?? null,
+      bg: b.bg,
+      tier: b.tier,
+      status: "pending_payment",
+      owner_key_hash: ownerKeyHash,
+      currency: b.currency,
+      paid_amount_minor: amountMinor,
+      paid_base: paidBase,
+      idempotency_key: b.idempotencyKey ?? null,
+    });
+    if (insertErr) return NextResponse.json({ error: friendlyError("posts.insert", insertErr) }, { status: 500 });
+  }
 
   try {
     const order = await createOrder(amountMinor, b.currency, postId, { postId, tier: b.tier });
@@ -168,7 +197,7 @@ export async function POST(req: NextRequest) {
       currency: b.currency,
       status: "created",
     });
-    if (orderErr) return NextResponse.json({ error: orderErr.message }, { status: 500 });
+    if (orderErr) return NextResponse.json({ error: friendlyError("posts.order-insert", orderErr) }, { status: 500 });
 
     return NextResponse.json({
       postId,
@@ -177,10 +206,14 @@ export async function POST(req: NextRequest) {
       razorpayKeyId: process.env.RAZORPAY_KEY_ID,
     });
   } catch (e) {
-    // Razorpay not configured yet, or the API call failed — clean up the
-    // pending post rather than leaving an orphan nobody can ever pay for.
-    await sb.from("posts").delete().eq("id", postId);
-    const message = e instanceof Error ? e.message : "Could not start payment.";
-    return NextResponse.json({ error: message }, { status: 502 });
+    // Razorpay not configured yet, or the API call failed — clean up a
+    // freshly-created pending post rather than leaving an orphan nobody can
+    // ever pay for (but keep a reused draft around; it's not orphaned, it's
+    // just waiting on a working payment provider).
+    if (!reusingDraft) await sb.from("posts").delete().eq("id", postId);
+    return NextResponse.json(
+      { error: friendlyError("posts.createOrder", e, "Payments are temporarily unavailable — try again in a few minutes.") },
+      { status: 502 }
+    );
   }
 }

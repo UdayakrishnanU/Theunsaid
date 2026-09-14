@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getOrCreateVoterId } from "@/lib/identity";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
+import { friendlyError } from "@/lib/apiError";
 
 export const runtime = "nodejs";
 
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const voterId = await getOrCreateVoterId();
   const sb = supabaseAdmin();
   const { data, error } = await sb.rpc("cast_vote", { p_post_id: id, p_voter_id: voterId, p_side: parsed.data.side });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: friendlyError("vote", error) }, { status: 500 });
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) return NextResponse.json({ error: "Post not found." }, { status: 404 });
   return NextResponse.json({ va: row.va, vb: row.vb, alreadyVoted: row.already_voted });

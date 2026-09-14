@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hashOwnerKey } from "@/lib/ownerKey";
+import { friendlyError } from "@/lib/apiError";
 import type { Post } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -56,8 +57,11 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
 
   const { error: updErr } = await sb
     .from("posts")
-    .update({ hidden: true, deleted_by_author: true })
+    // status: "deleted" (not just the hidden flag) so an owner-initiated
+    // delete is distinguishable everywhere from an admin takedown — see
+    // app/api/admin/posts/[id]/takedown, which uses status: "hidden" instead.
+    .update({ hidden: true, deleted_by_author: true, status: "deleted" })
     .eq("id", id);
-  if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
+  if (updErr) return NextResponse.json({ error: friendlyError("posts.delete", updErr) }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
