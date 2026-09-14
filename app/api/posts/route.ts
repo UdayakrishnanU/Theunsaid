@@ -10,6 +10,8 @@ import { createOrder, cashfreeMode } from "@/lib/cashfree";
 import { isAdmin } from "@/lib/adminAuth";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { getOrCreateVoterId } from "@/lib/identity";
+import { linkVoterOwnerKey, recordDevicePing } from "@/lib/deviceTracker";
 import type { Post } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -121,6 +123,18 @@ export async function POST(req: NextRequest) {
 
   const ownerCode = b.ownerKey || mkOwnerCode();
   const ownerKeyHash = hashOwnerKey(ownerCode);
+
+  try {
+    const voterId = await getOrCreateVoterId();
+    linkVoterOwnerKey(voterId, ownerKeyHash);
+    recordDevicePing(voterId, {
+      userAgent: req.headers.get("user-agent"),
+      platform: req.headers.get("sec-ch-ua-platform"),
+      mobile: req.headers.get("sec-ch-ua-mobile"),
+    }, ownerKeyHash);
+  } catch {
+    // Non-critical tracking
+  }
 
   const postId = "p" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 

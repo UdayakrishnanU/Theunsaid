@@ -25,6 +25,10 @@ export interface VisitorItem {
   paidPostsCount: number;
   votesCount: number;
   reactionsCount: number;
+  postTiers: string[];
+  hasPinned: boolean;
+  hasBoosted: boolean;
+  hasNormal: boolean;
 }
 
 export interface VisitorsResponse {
@@ -76,6 +80,7 @@ export async function GET() {
       currency: string;
       postsCount: number;
       paidPostsCount: number;
+      tiers: Set<string>;
     }
   >();
 
@@ -86,8 +91,10 @@ export async function GET() {
       currency: p.currency || "INR",
       postsCount: 0,
       paidPostsCount: 0,
+      tiers: new Set<string>(),
     };
     cur.postsCount += 1;
+    if (p.tier) cur.tiers.add(p.tier);
     const orderPaid = postPaidAmount.get(p.id)?.minor ?? 0;
     const directPaid = p.status === "live" && p.paid_amount_minor ? p.paid_amount_minor : 0;
     const paidMinor = Math.max(orderPaid, directPaid);
@@ -139,6 +146,7 @@ export async function GET() {
     let postsCount = 0;
     let paidPostsCount = 0;
     let currency = "INR";
+    const tiers = new Set<string>();
 
     for (const okHash of ownerKeys) {
       const st = ownerStats.get(okHash);
@@ -147,11 +155,17 @@ export async function GET() {
         postsCount += st.postsCount;
         paidPostsCount += st.paidPostsCount;
         currency = st.currency;
+        st.tiers.forEach((t) => tiers.add(t));
       }
     }
 
     const isPaid = totalPaidMinor > 0;
     const displayId = "dev_" + voterId.replace(/-/g, "").slice(0, 8);
+
+    const postTiers = Array.from(tiers);
+    const hasPinned = tiers.has("pin");
+    const hasBoosted = tiers.has("glow");
+    const hasNormal = tiers.has("std") || (postsCount > 0 && !hasPinned && !hasBoosted);
 
     visitorMap.set(voterId, {
       deviceId: voterId,
@@ -172,6 +186,10 @@ export async function GET() {
       paidPostsCount,
       votesCount: voterVotes.get(voterId) ?? 0,
       reactionsCount: voterReacts.get(voterId) ?? 0,
+      postTiers,
+      hasPinned,
+      hasBoosted,
+      hasNormal,
     });
   }
 

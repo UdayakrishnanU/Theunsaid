@@ -1,15 +1,32 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getOrCreateVoterId } from "@/lib/identity";
+import { recordDevicePing } from "@/lib/deviceTracker";
+import { hashOwnerKey } from "@/lib/ownerKey";
 
 export const runtime = "nodejs";
 
-// Real presence (ported from the original's heartbeat()), backed by a table
-// instead of shared localStorage: "online now" = heartbeats in the last 5
-// minutes, "visitors today" = distinct sessions first seen since midnight
-// (server clock — good enough for a vanity counter, not a legal timestamp).
-export async function POST() {
+export async function POST(req: NextRequest) {
   const voterId = await getOrCreateVoterId();
+
+  // Read client device headers
+  const userAgent = req.headers.get("user-agent");
+  const platform = req.headers.get("sec-ch-ua-platform");
+  const mobile = req.headers.get("sec-ch-ua-mobile");
+
+  // Optional ownerKey if client passed it
+  let ownerKeyHash: string | null = null;
+  try {
+    const json = await req.json().catch(() => null);
+    if (json?.ownerKey && typeof json.ownerKey === "string") {
+      ownerKeyHash = hashOwnerKey(json.ownerKey);
+    }
+  } catch {
+    // Plain POST without body
+  }
+
+  recordDevicePing(voterId, { userAgent, platform, mobile }, ownerKeyHash);
+
   const sb = supabaseAdmin();
   const { data, error } = await sb.rpc("touch_presence", { p_session_id: voterId });
   if (error) return NextResponse.json({ online: 1, today: 1 });
