@@ -1369,49 +1369,48 @@ a.lnk{text-decoration:none;cursor:pointer}
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
-/* Pinned Post Card with Luxurious Amber/Gold Gradient */
+/* Pinned Post Card with Subtle Luxurious Amber/Gold Tone */
 .feed-post-card.card-pinned {
   background: linear-gradient(
     135deg,
-    #FFFDF7 0%,
-    #FFFDF0 20%,
-    #FEFCE8 45%,
-    #FEF9C3 75%,
-    #FEF08A 100%
+    #FFFFFF 0%,
+    #FFFDF8 30%,
+    #FEFCF0 65%,
+    #FEF9DA 100%
   );
-  background-size: 260% 260%;
+  background-size: 200% 200%;
   background-position: var(--scroll-pos, 0%) calc(var(--scroll-pos, 0%) * 0.7);
-  border: 1.5px solid #FCD34D;
-  box-shadow: 0 4px 20px -2px rgba(245, 158, 11, 0.16), 0 2px 6px -1px rgba(217, 119, 6, 0.08);
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 4px 18px -2px rgba(245, 158, 11, 0.09), 0 1px 3px rgba(0, 0, 0, 0.03);
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .feed-post-card.card-pinned:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(245, 158, 11, 0.28), 0 3px 10px rgba(217, 119, 6, 0.14);
-  border-color: #FBBF24;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.16), 0 2px 6px rgba(217, 119, 6, 0.08);
+  border-color: rgba(245, 158, 11, 0.55);
 }
 
-/* Boosted Post Card with Radiant Multi-Tone Gradient */
+/* Boosted Post Card with Subtle Soft Rose Tone */
 .feed-post-card.card-boosted {
   background: linear-gradient(
     135deg,
-    #FFF5F7 0%,
-    #FFE4E8 25%,
-    #FFF0F3 55%,
-    #FECDD3 85%,
-    #FFF5F7 100%
+    #FFFFFF 0%,
+    #FFF9FA 35%,
+    #FFF2F5 70%,
+    #FFEBF0 100%
   );
-  background-size: 260% 260%;
+  background-size: 200% 200%;
   background-position: var(--scroll-pos, 0%) calc(var(--scroll-pos, 0%) * 0.7);
-  border: 1.5px solid #FDA4AF;
-  box-shadow: 0 4px 20px -2px rgba(244, 63, 94, 0.16), 0 2px 6px -1px rgba(244, 63, 94, 0.08);
+  border: 1.5px solid rgba(244, 63, 94, 0.25);
+  box-shadow: 0 4px 18px -2px rgba(244, 63, 94, 0.07), 0 1px 3px rgba(0, 0, 0, 0.03);
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .feed-post-card.card-boosted:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(244, 63, 94, 0.28), 0 3px 10px rgba(244, 63, 94, 0.14);
+  box-shadow: 0 8px 24px rgba(244, 63, 94, 0.16), 0 2px 6px rgba(244, 63, 94, 0.08);
+  border-color: rgba(244, 63, 94, 0.45);
 }
 
 /* Pinned & Boosted Dynamic Color Wave on Scroll */
@@ -1426,44 +1425,40 @@ a.lnk{text-decoration:none;cursor:pointer}
   z-index: 1;
 }
 
-/* Luminous gold wave that sweeps from one end to another on scroll */
+/* Subtle gold wave that sweeps from one end to another on scroll */
 .feed-post-card.card-pinned::before {
   background: linear-gradient(
     115deg,
     transparent 0%,
-    transparent 35%,
-    rgba(245, 158, 11, 0.18) 44%,
-    rgba(251, 191, 36, 0.5) 49%,
-    rgba(255, 255, 255, 0.85) 51%,
-    rgba(251, 191, 36, 0.5) 53%,
-    rgba(245, 158, 11, 0.18) 58%,
-    transparent 67%,
+    transparent 38%,
+    rgba(251, 191, 36, 0.08) 46%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(251, 191, 36, 0.08) 54%,
+    transparent 62%,
     transparent 100%
   );
   background-size: 300% 100%;
   background-position: calc(150% - var(--scroll-pos, 0%) * 2.2) 0;
-  opacity: 0.95;
-  animation: cardColorPassLoop 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  opacity: 0.35;
+  animation: cardColorPassLoop 10s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* Luminous shade wave that sweeps from one end to another on scroll */
+/* Subtle shade wave that sweeps from one end to another on scroll */
 .feed-post-card.card-boosted::before {
   background: linear-gradient(
     115deg,
     transparent 0%,
-    transparent 35%,
-    color-mix(in srgb, var(--shade-accent, #F43F5E) 25%, transparent) 44%,
-    color-mix(in srgb, var(--shade-accent, #F43F5E) 60%, transparent) 49%,
-    rgba(255, 255, 255, 0.9) 51%,
-    color-mix(in srgb, var(--shade-accent, #F43F5E) 60%, transparent) 53%,
-    color-mix(in srgb, var(--shade-accent, #F43F5E) 25%, transparent) 58%,
-    transparent 67%,
+    transparent 38%,
+    color-mix(in srgb, var(--shade-accent, #F43F5E) 8%, transparent) 46%,
+    rgba(255, 255, 255, 0.45) 50%,
+    color-mix(in srgb, var(--shade-accent, #F43F5E) 8%, transparent) 54%,
+    transparent 62%,
     transparent 100%
   );
   background-size: 300% 100%;
   background-position: calc(150% - var(--scroll-pos, 0%) * 2.2) 0;
-  opacity: 0.95;
-  animation: cardColorPassLoop 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  opacity: 0.35;
+  animation: cardColorPassLoop 10s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 /* Moving top border highlight line on scroll */
@@ -2134,6 +2129,23 @@ a.lnk{text-decoration:none;cursor:pointer}
 .pinned-crown-corner .art-crown-svg {
   width: 36px;
   height: 36px;
+  display: block;
+}
+
+.boosted-bolt-corner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 12px;
+  align-self: flex-start;
+  filter: drop-shadow(0 2px 6px rgba(225, 29, 72, 0.2));
+  z-index: 2;
+}
+
+.boosted-bolt-corner .art-bolt-svg {
+  width: 32px;
+  height: 32px;
   display: block;
 }
 

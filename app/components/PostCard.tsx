@@ -203,18 +203,18 @@ export default function PostCard({
             <defs>
               <linearGradient id={`goldSwoopGrad-${post.id}`} x1="0%" y1="100%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.0" />
-                <stop offset="35%" stopColor="#FBBF24" stopOpacity="0.22" />
-                <stop offset="70%" stopColor="#FDE047" stopOpacity="0.55" />
-                <stop offset="100%" stopColor="#D97706" stopOpacity="0.38" />
+                <stop offset="35%" stopColor="#FBBF24" stopOpacity="0.06" />
+                <stop offset="70%" stopColor="#FDE047" stopOpacity="0.14" />
+                <stop offset="100%" stopColor="#D97706" stopOpacity="0.09" />
               </linearGradient>
               <linearGradient id={`goldSwoopHighlight-${post.id}`} x1="0%" y1="100%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.0" />
-                <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.85" />
-                <stop offset="100%" stopColor="#FEF08A" stopOpacity="0.2" />
+                <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#FEF08A" stopOpacity="0.05" />
               </linearGradient>
               <linearGradient id={`watermarkCrownGrad-${post.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.16" />
-                <stop offset="100%" stopColor="#FBBF24" stopOpacity="0.04" />
+                <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.07" />
+                <stop offset="100%" stopColor="#FBBF24" stopOpacity="0.01" />
               </linearGradient>
             </defs>
 
@@ -237,20 +237,20 @@ export default function PostCard({
             <path
               d="M520 320 Q 680 305 780 210 Q 820 170 850 110"
               stroke={`url(#goldSwoopHighlight-${post.id})`}
-              strokeWidth="2.5"
+              strokeWidth="2"
             />
 
-            {/* Golden 4-point Sparkle Stars */}
-            <g transform="translate(42, 175) scale(0.9)" opacity="0.65">
+            {/* Subtle Golden 4-point Sparkle Stars */}
+            <g transform="translate(42, 175) scale(0.9)" opacity="0.35">
               <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#F59E0B" />
             </g>
-            <g transform="translate(730, 85) scale(1.15)" opacity="0.75">
+            <g transform="translate(730, 85) scale(1.15)" opacity="0.4">
               <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#FBBF24" />
             </g>
-            <g transform="translate(615, 175) scale(0.85)" opacity="0.55">
+            <g transform="translate(615, 175) scale(0.85)" opacity="0.3">
               <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#F59E0B" />
             </g>
-            <g transform="translate(590, 255) scale(0.7)" opacity="0.5">
+            <g transform="translate(590, 255) scale(0.7)" opacity="0.25">
               <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#F59E0B" />
             </g>
           </svg>
@@ -264,13 +264,13 @@ export default function PostCard({
             <defs>
               <linearGradient id={`pinkSwoopGrad-${post.id}`} x1="0%" y1="100%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#F43F5E" stopOpacity="0.0" />
-                <stop offset="45%" stopColor="#FDA4AF" stopOpacity="0.22" />
-                <stop offset="100%" stopColor="#FF2E7E" stopOpacity="0.32" />
+                <stop offset="45%" stopColor="#FDA4AF" stopOpacity="0.07" />
+                <stop offset="100%" stopColor="#FF2E7E" stopOpacity="0.10" />
               </linearGradient>
               <linearGradient id={`pinkSwoopHighlight-${post.id}`} x1="0%" y1="100%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.0" />
-                <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#FECDD3" stopOpacity="0.1" />
+                <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#FECDD3" stopOpacity="0.04" />
               </linearGradient>
             </defs>
 
@@ -282,14 +282,14 @@ export default function PostCard({
             <path
               d="M540 320 Q 700 305 790 220 Q 830 180 855 125"
               stroke={`url(#pinkSwoopHighlight-${post.id})`}
-              strokeWidth="2.2"
+              strokeWidth="1.8"
             />
 
             {/* Soft pink sparkle stars */}
-            <g transform="translate(50, 180) scale(0.85)" opacity="0.5">
+            <g transform="translate(50, 180) scale(0.85)" opacity="0.25">
               <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#F43F5E" />
             </g>
-            <g transform="translate(735, 90) scale(1.0)" opacity="0.6">
+            <g transform="translate(735, 90) scale(1.0)" opacity="0.3">
               <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#FB7185" />
             </g>
           </svg>
@@ -574,22 +574,13 @@ export default function PostCard({
             </div>
           </div>
 
-          {/* Right-Side Decorative Artwork Banner (Boosted & Pinned) */}
+          {/* Right-Side Decorative Visual (Boosted bolt without text slogan) */}
           {isBoosted && (
-            <div className="post-art-wrap boosted-art" aria-hidden="true">
-              <div className="art-slogan slogan-boosted">
-                <span className="slogan-line">More voices.</span>
-                <span className="slogan-line">More perspectives.</span>
-                <svg className="slogan-swoop" viewBox="0 0 80 8" fill="none">
-                  <path d="M2 3C25 8 55 8 78 2" stroke="#E11D48" strokeWidth="2.2" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div className="post-art-visual bolt-visual">
-                <svg className="art-bolt-svg" viewBox="0 0 36 36" fill="none">
-                  <path d="M16 2L6 18H15L12 34L26 16H16L18 2Z" fill="#FDA4AF" fillOpacity="0.85" />
-                  <path d="M20 5L11 20H19L16 33L29 18H20L22 5Z" fill="#F43F5E" />
-                </svg>
-              </div>
+            <div className="boosted-bolt-corner" aria-hidden="true" title="Boosted post">
+              <svg className="art-bolt-svg" viewBox="0 0 36 36" fill="none">
+                <path d="M16 2L6 18H15L12 34L26 16H16L18 2Z" fill="#FDA4AF" fillOpacity="0.85" />
+                <path d="M20 5L11 20H19L16 33L29 18H20L22 5Z" fill="#F43F5E" />
+              </svg>
             </div>
           )}
 
