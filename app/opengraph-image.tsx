@@ -1,11 +1,22 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "fs/promises";
+import path from "path";
 
 export const runtime = "nodejs";
 export const alt = "AnonVerdict — anonymous confessions, settled by strangers";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+let logoDataUri: string | null = null;
+async function getLogoDataUri(): Promise<string> {
+  if (logoDataUri) return logoDataUri;
+  const buf = await readFile(path.join(process.cwd(), "public", "anonverdict-logo.png"));
+  logoDataUri = `data:image/png;base64,${buf.toString("base64")}`;
+  return logoDataUri;
+}
+
 export default async function Image() {
+  const logo = await getLogoDataUri();
   return new ImageResponse(
     (
       <div
@@ -21,27 +32,8 @@ export default async function Image() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 22, marginBottom: 40 }}>
-          <div
-            style={{
-              width: 84,
-              height: 84,
-              borderRadius: "50%",
-              background: "#141712",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div
-              style={{
-                width: 0,
-                height: 0,
-                borderLeft: "22px solid transparent",
-                borderRight: "22px solid transparent",
-                borderBottom: "38px solid #FFFFFF",
-              }}
-            />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logo} width={84} height={84} style={{ borderRadius: "50%" }} />
           <div style={{ display: "flex", fontSize: 48, fontWeight: 800, color: "#141712", letterSpacing: -1 }}>
             AnonVerdict
           </div>
