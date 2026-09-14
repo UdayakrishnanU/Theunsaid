@@ -34,7 +34,15 @@ export default function PostModal({
   posts: Post[];
   currency: CurrencyDef;
   onClose: () => void;
-  onPosted: (info: { postId: string; ownerKey: string; type: "confession" | "dilemma" }) => void;
+  onPosted: (info: {
+    postId: string;
+    ownerKey: string;
+    type: "confession" | "dilemma";
+    text: string;
+    category: string;
+    oa?: string | null;
+    ob?: string | null;
+  }) => void;
 }) {
   const { ensure } = useOwnerKey();
   const [type, setType] = useState<"confession" | "dilemma">(initialType);
@@ -162,9 +170,18 @@ export default function PostModal({
         setPhase("form");
         return;
       }
+      const postPayload = {
+        postId: res.postId,
+        ownerKey: res.ownerKey,
+        type,
+        text: text.trim(),
+        category,
+        oa: type === "dilemma" ? oa.trim() : null,
+        ob: type === "dilemma" ? ob.trim() : null,
+      };
       if (res.dev) {
         // Admin test post — already live, no Cashfree order was ever opened.
-        onPosted({ postId: res.postId, ownerKey: res.ownerKey, type });
+        onPosted(postPayload);
         return;
       }
       if (!res.cashfree || !res.order) {
@@ -180,7 +197,7 @@ export default function PostModal({
           setPhase("confirming");
           try {
             await api.confirmPayment(res.postId, { orderId });
-            onPosted({ postId: res.postId, ownerKey: res.ownerKey, type });
+            onPosted(postPayload);
             return;
           } catch {
             // Instant confirmation didn't go through (a network hiccup, most
@@ -189,7 +206,7 @@ export default function PostModal({
           }
           const ok = await pollUntilLive(res.postId);
           if (ok) {
-            onPosted({ postId: res.postId, ownerKey: res.ownerKey, type });
+            onPosted(postPayload);
           } else {
             setWarning(
               "The payment went through, but the post hasn't gone live here yet — that can take a couple of minutes. It'll show up on My posts as soon as it lands; if it's still stuck after 10 minutes, contact support with your recovery key and we'll sort it out."

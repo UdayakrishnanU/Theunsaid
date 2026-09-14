@@ -297,15 +297,23 @@ button{font-family:inherit}
 .tally{font-size:12px;color:var(--faint);margin-top:7px}
 
 .rx{display:flex;flex-wrap:wrap;gap:6px}
-.chip{font-size:12.5px;background:#fff;border:1px solid var(--rule);border-radius:999px;padding:0 12px;min-height:44px;cursor:pointer;color:var(--dim);display:flex;align-items:center;gap:6px;line-height:1}
+.chip{position:relative;overflow:hidden;font-size:12.5px;background:#fff;border:1px solid var(--rule);border-radius:999px;padding:0 13px;min-height:44px;cursor:pointer;color:var(--dim);display:inline-flex;align-items:center;gap:6px;line-height:1;transition:border-color .25s ease,transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .25s ease;user-select:none}
+.chip::before{content:'';position:absolute;inset:0;background:var(--ink,#141712);border-radius:999px;transform:scaleX(0);transform-origin:left center;transition:transform .38s cubic-bezier(.16,1,.3,1);z-index:0}
+.chip.on::before{transform:scaleX(1)}
+.chip > *{position:relative;z-index:1;transition:color .25s ease}
 .chip:hover{border-color:var(--ink);color:var(--ink)}
-.chip.on{border-color:var(--ink);background:var(--ink);color:#fff;font-weight:650;box-shadow:0 2px 8px rgba(24,24,27,0.22)}
-.chip.on .n{color:#fff;opacity:0.95}
-.card.glow .chip:hover{border-color:var(--acc)}
-.card.glow .chip.on{border-color:var(--acc);background:var(--acc);color:#fff;box-shadow:0 2px 10px color-mix(in srgb,var(--acc) 45%,transparent)}
-.card.pin .chip.on,.pinned-post-card .chip.on{border-color:#D97706;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;box-shadow:0 2px 10px rgba(217,119,6,0.38)}
-.md.detail .chip:hover{border-color:#F59E0B}
-.md.detail .chip.on{border-color:#F59E0B;background:#F59E0B;color:#fff;box-shadow:0 2px 10px rgba(245,158,11,0.35)}
+.chip.on{border-color:var(--ink)!important;color:#fff!important;font-weight:700;box-shadow:0 3px 12px rgba(20,23,18,0.25)}
+.chip.on .n{color:#fff!important;background:rgba(255,255,255,0.24);padding:2px 6px;border-radius:999px;font-size:11px;font-weight:800}
+.chip.on .chip-emoji{display:inline-block;animation:emojiBounce .36s cubic-bezier(.34,1.56,.64,1)}
+.chip-reacted-tag{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.28);color:#fff;font-size:10px;font-weight:900;border-radius:999px;width:16px;height:16px;margin-left:2px;animation:tagPop .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes emojiBounce{0%{transform:scale(1)}50%{transform:scale(1.4) rotate(-8deg)}100%{transform:scale(1) rotate(0deg)}}
+@keyframes tagPop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+.card.glow .chip::before,.card-boosted .chip::before{background:var(--shade-accent,var(--acc,#F43F5E))}
+.card.glow .chip.on,.card-boosted .chip.on{border-color:var(--shade-accent,var(--acc,#F43F5E))!important;color:#fff!important;box-shadow:0 3px 12px rgba(244,63,94,0.35)}
+.card.pin .chip::before,.card-pinned .chip::before,.pin-card-outer .chip::before{background:linear-gradient(135deg,#F59E0B,#D97706)}
+.card.pin .chip.on,.card-pinned .chip.on,.pin-card-outer .chip.on{border-color:#D97706!important;color:#fff!important;box-shadow:0 3px 12px rgba(217,119,6,0.38)}
+.md.detail .chip::before{background:#141712}
+.md.detail .chip.on{border-color:#141712!important;color:#fff!important;box-shadow:0 3px 12px rgba(20,23,18,0.28)}
 .chip .n{font-weight:700;font-size:11.5px;font-variant-numeric:tabular-nums}
 .chip.more{border-style:dashed;color:var(--faint)}
 .tray{display:none;flex-wrap:wrap;gap:6px;margin-top:8px}.tray.open{display:flex}

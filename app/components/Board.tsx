@@ -64,7 +64,12 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
   });
   const [detailId, setDetailId] = useState<string | null>(null);
   const [voteOpen, setVoteOpen] = useState(false);
-  const [savedInfo, setSavedInfo] = useState<{ code: string; kind: string } | null>(null);
+  const [savedInfo, setSavedInfo] = useState<{
+    code: string;
+    kind: string;
+    postId: string;
+    postData: ShareCardData;
+  } | null>(null);
   const [savedInfoCopied, setSavedInfoCopied] = useState(false);
   const [votedToday, setVotedToday] = useState(0);
 
@@ -327,6 +332,24 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
   async function handleShare(p: Post) {
     openShareStudio(p);
   }
+
+  function handleDismissKeyPopup() {
+    if (!savedInfo) return;
+    const current = savedInfo;
+    setSavedInfo(null);
+    setSavedInfoCopied(false);
+
+    // Auto-open Share Studio modal with "curiosity" (Ask Friends - No Spoilers) in banner format!
+    const existing = all.find((p) => p.id === current.postId);
+    if (existing) {
+      openShareStudio(existing, "curiosity");
+    } else {
+      setShareData(current.postData);
+      setShareVariant("curiosity");
+      setShareOpen(true);
+    }
+  }
+
   function copyLink(id: string) {
     const url = `${window.location.origin}/p/${id}`;
     navigator.clipboard?.writeText(url).catch(() => {});
@@ -532,7 +555,7 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
                     : shelfAll.length < SLOTS
                     ? `${SLOTS - shelfAll.length} of ${SLOTS} slots still open from ${rupee(floorBase, curCode)}.`
                     : SLOTS === 1
-                    ? "The highest bid holds the shelf for 24 hours."
+                    ? `The highest bid holds the shelf for 24 hours. (Held at ${shelfAll[0]?.paid ? rupee(shelfAll[0].paid, curCode) : "₹700"})`
                     : `The ${SLOTS} highest bids hold the shelf for 24 hours.`
                   : `Showing ${shelf.length} of ${shelfAll.length} pinned that match this filter.`}
               </p>
@@ -670,11 +693,24 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
         posts={all}
         currency={curDef}
         onClose={() => setPostModal((m) => ({ ...m, open: false }))}
-        onPosted={({ postId, ownerKey: ok, type }) => {
+        onPosted={({ postId, ownerKey: ok, type, text: postText, category: postCat, oa: optA, ob: optB }) => {
           mine.addMine(postId);
           mine.recordOwner(postId, ok);
           setPostModal((m) => ({ ...m, open: false }));
-          setSavedInfo({ code: ok, kind: type });
+          setSavedInfo({
+            code: ok,
+            kind: type,
+            postId,
+            postData: {
+              id: postId,
+              category: postCat || (type === "dilemma" ? "DILEMMA" : "CONFESSION"),
+              story: postText,
+              optionA: optA || "Option A",
+              optionB: optB || "Option B",
+              pctA: 50,
+              votes: 0,
+            },
+          });
           refresh();
         }}
       />
@@ -706,7 +742,7 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
       <VoteModal open={voteOpen} queue={voteQueue} votedToday={votedToday} onClose={() => { setVoteOpen(false); refresh(); }} onVote={handleVote} />
 
       {savedInfo && (
-        <div className="ov show" onClick={(e) => e.target === e.currentTarget && setSavedInfo(null)}>
+        <div className="ov show" onClick={(e) => e.target === e.currentTarget && handleDismissKeyPopup()}>
           <div className="md succ" role="dialog" aria-modal="true">
             <h3>Posted.</h3>
             <p>Your {savedInfo.kind} is live. Save your key to manage it from any device.</p>
@@ -715,7 +751,7 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
               Anyone holding this key controls your posts. We can&apos;t recover it for you — we don&apos;t know who you are.
             </p>
             <div className="ma">
-              <button className="btn gh" onClick={() => setSavedInfo(null)}>
+              <button className="btn gh" onClick={handleDismissKeyPopup}>
                 Close
               </button>
               <button
@@ -723,10 +759,12 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
                 onClick={() => {
                   navigator.clipboard?.writeText(savedInfo.code).catch(() => {});
                   setSavedInfoCopied(true);
-                  setTimeout(() => setSavedInfoCopied(false), 1600);
+                  setTimeout(() => {
+                    handleDismissKeyPopup();
+                  }, 650);
                 }}
               >
-                {savedInfoCopied ? "Copied" : "Copy key"}
+                {savedInfoCopied ? "Copied! Opening share banner…" : "Copy key & Share"}
               </button>
             </div>
           </div>

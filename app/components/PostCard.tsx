@@ -389,7 +389,7 @@ export default function PostCard({
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M2 4l3 12h14l3-12-5 6-5-6-5 6-5-6z" />
                   </svg>
-                  Pinned
+                  Pinned · {post.paid ? rupee(post.paid, post.currency || "INR") : "₹700"}
                 </span>
                 <span className="post-pinned-price">
                   {post.paid ? rupee(post.paid, post.currency || "INR") : "₹700"}
@@ -567,15 +567,32 @@ export default function PostCard({
                 const count = post.reactions?.[key] || 0;
                 const on = reactedKeys.includes(key);
                 return (
-                  <button key={key} className={"chip" + (on ? " on" : "")} onClick={() => onReact(key)} aria-label={label}>
-                    <span aria-hidden="true">{emoji}</span>
-                    {label}
+                  <button
+                    key={key}
+                    type="button"
+                    className={"chip" + (on ? " on" : "")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReact(key);
+                    }}
+                    aria-label={label}
+                  >
+                    <span className="chip-emoji" aria-hidden="true">{emoji}</span>
+                    <span className="chip-label">{label}</span>
+                    {on && <span className="chip-reacted-tag" title="You reacted">✓</span>}
                     {count > 0 && <span className="n">{nf(count)}</span>}
                   </button>
                 );
               })}
               {!showAllChips && CHIPS.length > VISIBLE_CHIPS && (
-                <button type="button" className="chip more" onClick={() => setShowAllChips(true)}>
+                <button
+                  type="button"
+                  className="chip more"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAllChips(true);
+                  }}
+                >
                   +{CHIPS.length - VISIBLE_CHIPS} more
                 </button>
               )}

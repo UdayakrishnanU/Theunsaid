@@ -141,9 +141,16 @@ export default function DetailModal({
             const count = post.reactions?.[key] || 0;
             const on = reactedKeys.includes(key);
             return (
-              <button key={key} className={"chip" + (on ? " on" : "")} onClick={() => onReact(key)} aria-label={label}>
-                <span aria-hidden="true">{emoji}</span>
-                {label}
+              <button
+                key={key}
+                type="button"
+                className={"chip" + (on ? " on" : "")}
+                onClick={() => onReact(key)}
+                aria-label={label}
+              >
+                <span className="chip-emoji" aria-hidden="true">{emoji}</span>
+                <span className="chip-label">{label}</span>
+                {on && <span className="chip-reacted-tag" title="You reacted">✓</span>}
                 {count > 0 && <span className="n">{nf(count)}</span>}
               </button>
             );
