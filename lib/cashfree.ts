@@ -45,8 +45,19 @@ export async function createOrder(
   notes: Record<string, string>
 ): Promise<{ id: string; cfOrderId: string; paymentSessionId: string }> {
   const isInr = currency === "INR";
-  const siteUrl =
-    process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://www.anonverdict.com");
+  // Production must never fall through to a raw *.vercel.app deployment
+  // URL — Cashfree's checkout redirects the payer's browser here right
+  // after payment, and a bare Vercel domain instead of the app's own
+  // /mine success screen breaks the post-payment owner-key/share-card
+  // flow entirely. VERCEL_URL is only trusted on non-production
+  // deployments (previews), where it's actually the right target.
+  const siteUrl = (() => {
+    if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+    if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production" && process.env.VERCEL_URL) {
+      return `https://${process.env.VERCEL_URL}`;
+    }
+    return "https://www.anonverdict.com";
+  })();
 
   const res = await fetch(`${baseUrl()}/orders`, {
     method: "POST",

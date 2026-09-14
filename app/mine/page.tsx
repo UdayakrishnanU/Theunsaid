@@ -8,6 +8,8 @@ import { api } from "@/app/lib-client/api";
 import { openCashfreeCheckout } from "@/app/lib-client/cashfreeCheckout";
 import { ago, nf, rsum, vsum, CHIPS } from "@/lib/board-helpers";
 import type { Post } from "@/lib/types";
+import ShareStudioModal from "@/app/components/ShareStudioModal";
+import type { CardFormat, CardVariant, ShareCardData } from "@/app/lib-client/shareCardCanvas";
 
 type OwnedPost = Post & { status: string };
 type EngagedPost = Post & { status: string; yourVote?: "a" | "b"; yourReactions?: string[] };
@@ -68,6 +70,16 @@ export default function MinePage() {
   const [lastSeen, setLastSeen] = useLocalState<number>("unsaid_mine_last_seen", 0);
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
   const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
+  // Auto-shown once, right after a real Cashfree payment confirms (see the
+  // cf_order_id effect below) -- closes the "did my payment go through"
+  // loop the same way the instant/no-redirect post flow already does on
+  // the board (Board.tsx's handleDismissKeyPopup), which this page never
+  // had, since a real payment redirects the browser away and back here
+  // instead of staying on the page that created the post.
+  const [shareData, setShareData] = useState<ShareCardData | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareVariant, setShareVariant] = useState<CardVariant>("curiosity");
+  const [shareFormat, setShareFormat] = useState<CardFormat>("og");
 
   function noteFreshOutcomes(items: (OwnedPost | EngagedPost)[]) {
     // useLocalState's setter takes a plain value, not an updater — read
@@ -91,11 +103,15 @@ export default function MinePage() {
           .confirmPayment(postId, { orderId: cfOrderId })
           .then(() => {
             setPaymentNotice("Payment received! Your post is now live.");
-            reload(true);
+            return reload(true);
           })
           .catch(() => {
             setPaymentNotice("Payment received. Processing your post...");
-            reload(true);
+            return reload(true);
+          })
+          .then((result) => {
+            const paidPost = result?.posts.find((p) => p.id === postId);
+            if (paidPost) openPostShareCard(paidPost);
           });
       }
     }
@@ -107,10 +123,10 @@ export default function MinePage() {
   // only showing up right after the "Restore posts" click that added it.
   // (Before this, a fresh page load re-fetched only `codes[0]`, so anything
   // that came from an "also holding" key quietly vanished on reload.)
-  async function reload(silent = false) {
+  async function reload(silent = false): Promise<{ posts: OwnedPost[]; engaged: EngagedPost[] } | undefined> {
     if (!codes.length) {
       setLoading(false);
-      return;
+      return { posts: [], engaged: [] };
     }
     if (!silent) setLoading(true);
     try {
@@ -146,15 +162,39 @@ export default function MinePage() {
         setPrimaryOwnsAny(!!primary && (primary.posts.length > 0 || primary.engaged.length > 0));
         noteFreshOutcomes([...mergedPosts, ...mergedEngaged]);
       }
+      return { posts: mergedPosts, engaged: mergedEngaged };
     } catch {
       if (!silent) {
         setPosts([]);
         setEngaged([]);
         setPrimaryOwnsAny(false);
       }
+      return { posts: [], engaged: [] };
     } finally {
       if (!silent) setLoading(false);
     }
+  }
+
+  // Mirrors Board.tsx's openShareStudio()/handleDismissKeyPopup() -- same
+  // card shape, same default variant ("curiosity" == "Ask Friends, No
+  // Spoilers") and format ("og" banner), just triggered from the
+  // post-payment redirect instead of the in-page post-creation popup.
+  function openPostShareCard(p: OwnedPost) {
+    const t = vsum(p);
+    const pa = t ? Math.round((p.va / t) * 100) : 50;
+    setShareData({
+      id: p.id,
+      category: p.category || (p.type === "dilemma" ? "DILEMMA" : "CONFESSION"),
+      story: p.text,
+      optionA: p.oa || "Option A",
+      optionB: p.ob || "Option B",
+      pctA: pa,
+      votes: t,
+      outcome: p.outcome?.note || (p.outcome ? `Chose ${p.outcome.choice === "a" ? p.oa : p.ob}` : undefined),
+    });
+    setShareVariant("curiosity");
+    setShareFormat("og");
+    setShareOpen(true);
   }
 
   useEffect(() => {
@@ -421,6 +461,14 @@ export default function MinePage() {
           </div>
         )}
       </div>
+
+      <ShareStudioModal
+        open={shareOpen}
+        data={shareData}
+        initialVariant={shareVariant}
+        initialFormat={shareFormat}
+        onClose={() => setShareOpen(false)}
+      />
     </div>
   );
 }

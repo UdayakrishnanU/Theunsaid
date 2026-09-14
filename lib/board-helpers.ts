@@ -107,19 +107,41 @@ export function formatScore(n: number): string {
   return n.toString();
 }
 
+// A fresh post used to show its tier's full view-count floor (1.2k for a
+// brand-new std post, etc) from the very first render -- a 3-vote post
+// jumping straight to "1.2k views" reads as fake. Views now ramp in over
+// the first few hours instead of appearing instantly: `rampedFloor` blends
+// from a small starting value up to the same floor the formula always
+// used, on an ease-out curve (fast at first, leveling off), keyed off how
+// long the post has actually existed (`post.at`). Once real engagement
+// pushes the organic total past the floor, the floor stops mattering at
+// all -- this only changes the early, low-engagement window.
+function rampedFloor(tierFloor: number, startFloor: number, ageMs: number, rampHours: number): number {
+  const rampMs = rampHours * 3600 * 1000;
+  if (ageMs <= 0) return startFloor;
+  if (ageMs >= rampMs) return tierFloor;
+  const t = ageMs / rampMs;
+  const eased = 1 - Math.pow(1 - t, 2); // ease-out: quick early growth, slows near the floor
+  return Math.round(startFloor + (tierFloor - startFloor) * eased);
+}
+
 export function calcViews(post: Post): string {
   const votes = (post.va || 0) + (post.vb || 0);
   const reacts = Object.values(post.reactions || {}).reduce((a, b) => a + b, 0);
   const totalEng = votes + reacts;
+  const ageMs = Date.now() - post.at;
   if (post.tier === "pin") {
-    const base = Math.max(25600, totalEng * 12 + 18000);
+    const floor = rampedFloor(25600, 900, ageMs, 6);
+    const base = Math.max(floor, totalEng * 12 + 18000);
     return formatScore(base);
   }
   if (post.tier === "glow") {
-    const base = Math.max(8400, totalEng * 10 + 6200);
+    const floor = rampedFloor(8400, 260, ageMs, 6);
+    const base = Math.max(floor, totalEng * 10 + 6200);
     return formatScore(base);
   }
-  const base = Math.max(1200, totalEng * 8 + 450);
+  const floor = rampedFloor(1200, 40, ageMs, 6);
+  const base = Math.max(floor, totalEng * 8 + 450);
   return formatScore(base);
 }
 
