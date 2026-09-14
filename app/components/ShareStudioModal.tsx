@@ -60,6 +60,7 @@ export default function ShareStudioModal({
   const [variant, setVariant] = useState<CardVariant>(initialVariant);
   const [format, setFormat] = useState<CardFormat>("og");
   const [status, setStatus] = useState<string>("");
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -69,6 +70,22 @@ export default function ShareStudioModal({
       setStatus("");
     }
   }, [open, initialVariant, data]);
+
+  // "Developer options" (copy raw caption text) is a debug affordance, not
+  // something every visitor should see — only show it to whoever is signed
+  // into /admin on this device.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/whoami")
+      .then((r) => (r.ok ? r.json() : { isAdmin: false }))
+      .then((j) => {
+        if (!cancelled) setIsAdminUser(!!j.isAdmin);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Re-render canvas whenever variant, format, or data changes
   useEffect(() => {
@@ -130,7 +147,7 @@ export default function ShareStudioModal({
     if (!canvas) return;
     canvas.toBlob(async (blob) => {
       if (!blob) return;
-      const file = new File([blob], `anonverdict-${variant}-${format}.png`, { type: "image/png" });
+      const file = new File([blob], `anonverdict-${variant}-${format}.jpg`, { type: "image/jpeg" });
       const caption = generateShareCaption(data!, variant, url);
 
       // 1. Try native Web Share with file (Mobile Safari, Android Chrome, Mac Safari)
@@ -174,7 +191,7 @@ export default function ShareStudioModal({
         setStatus("Poster saved to downloads!");
       }
       setTimeout(() => setStatus(""), 3500);
-    }, "image/png", 1.0);
+    }, "image/jpeg", 0.92);
   }
 
   async function handleShareWhatsApp() {
@@ -185,16 +202,19 @@ export default function ShareStudioModal({
       const shared = await new Promise<boolean>((resolve) => {
         canvas.toBlob((blob) => {
           if (!blob) return resolve(false);
-          const file = new File([blob], `anonverdict-${variant}-${format}.png`, { type: "image/png" });
+          const file = new File([blob], `anonverdict-${variant}-${format}.jpg`, { type: "image/jpeg" });
           if (!navigator.canShare({ files: [file] })) return resolve(false);
           navigator
             .share({ title: "AnonVerdict", text: caption, files: [file] })
             .then(() => resolve(true))
             .catch((err: unknown) => resolve((err as Error)?.name === "AbortError"));
-        }, "image/png", 1.0);
+        }, "image/jpeg", 0.92);
       });
       if (shared) return;
     }
+    // No file-sharing support here — grab the poster so there's still an
+    // image to attach by hand, then open WhatsApp with the text + link.
+    handleDownload();
     const text = `“${data.story}”\n\nVote anonymously here: ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }
@@ -371,13 +391,16 @@ export default function ShareStudioModal({
 
               {status && <div className="share-status-toast">{status}</div>}
 
-              {/* Developer options only */}
-              <details className="share-dev-drawer">
-                <summary className="share-dev-summary">Developer options</summary>
-                <button type="button" className="btn-share-dev" onClick={handleCopyCaption}>
-                  Copy text caption
-                </button>
-              </details>
+              {/* Developer options only — gated to signed-in admins, see the
+                  effect above. */}
+              {isAdminUser && (
+                <details className="share-dev-drawer">
+                  <summary className="share-dev-summary">Developer options</summary>
+                  <button type="button" className="btn-share-dev" onClick={handleCopyCaption}>
+                    Copy text caption
+                  </button>
+                </details>
+              )}
             </div>
           </div>
 

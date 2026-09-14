@@ -1,18 +1,22 @@
 import { ImageResponse } from "next/og";
 import { supabaseAdmin } from "@/lib/supabase";
+import { C, TC } from "@/lib/board-helpers";
+import { loadBrandFonts } from "@/lib/og-font";
+import { readFile } from "fs/promises";
+import path from "path";
 
 export const runtime = "nodejs";
 export const alt = "AnonVerdict post";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const CAT_COLORS: Record<string, string> = {
-  relationships: "#F43F5E",
-  work: "#0EA5E9",
-  money: "#F59E0B",
-  family: "#10B981",
-  random: "#8B5CF6",
-};
+let logoDataUri: string | null = null;
+async function getLogoDataUri(): Promise<string> {
+  if (logoDataUri) return logoDataUri;
+  const buf = await readFile(path.join(process.cwd(), "public", "anonverdict-logo.png"));
+  logoDataUri = `data:image/png;base64,${buf.toString("base64")}`;
+  return logoDataUri;
+}
 
 function summarize(text: string, max: number) {
   const t = (text || "").trim();
@@ -29,17 +33,26 @@ export default async function Image({
 }) {
   const { id } = await params;
   const sb = supabaseAdmin();
-  const { data: post } = await sb.from("posts").select("*").eq("id", id).eq("hidden", false).single();
+  const [{ data: post }, fonts, logo] = await Promise.all([
+    sb.from("posts").select("*").eq("id", id).eq("hidden", false).single(),
+    loadBrandFonts(),
+    getLogoDataUri(),
+  ]);
 
-  const accent = (post && CAT_COLORS[post.category as string]) || "#141712";
   const isDilemma = post?.type === "dilemma";
-  const text = summarize((post?.text as string) || "Someone needs the crowd's verdict.", isDilemma ? 150 : 200);
+  const palette = (post && (C[post.category as string] || TC[post.type as string])) || C.all;
+  const accent = palette.a;
+  const tint = palette.t;
+  const deep = palette.d;
+
+  const text = summarize((post?.text as string) || "Someone needs the crowd's verdict.", isDilemma ? 150 : 210);
 
   const va = (post?.va as number) || 0;
   const vb = (post?.vb as number) || 0;
   const total = va + vb;
   const pa = total ? Math.round((va / total) * 100) : 50;
   const pb = 100 - pa;
+  const category = post ? (post.category as string) : "dilemma";
 
   return new ImageResponse(
     (
@@ -48,90 +61,152 @@ export default async function Image({
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          background: "#FAF9F5",
-          padding: "70px 80px",
+          background: `linear-gradient(135deg, ${tint} 0%, #FAF9F5 62%)`,
+          padding: "44px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 14, height: 14, borderRadius: "50%", background: accent }} />
-          <div
-            style={{
-              display: "flex",
-              fontSize: 26,
-              fontWeight: 700,
-              letterSpacing: 2,
-              textTransform: "uppercase",
-              color: "#697066",
-            }}
-          >
-            {post ? (post.category as string) : "dilemma"} · AnonVerdict
-          </div>
-        </div>
-
         <div
           style={{
             display: "flex",
-            fontSize: 52,
-            fontWeight: 700,
-            color: "#141712",
-            lineHeight: 1.3,
-            maxWidth: 1000,
+            flexDirection: "column",
+            justifyContent: "space-between",
+            width: "100%",
+            height: "100%",
+            background: "#FFFFFF",
+            border: "1px solid #E5E9E0",
+            borderRadius: 32,
+            padding: "0 64px 46px 64px",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          {`"${text}"`}
-        </div>
+          {/* top accent band */}
+          <div style={{ display: "flex", position: "absolute", top: 0, left: 0, right: 0, height: 10, background: accent }} />
 
-        {isDilemma && post ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ display: "flex", gap: 16 }}>
+          {/* header */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingTop: 46,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", width: 12, height: 12, borderRadius: 6, background: accent }} />
               <div
                 style={{
                   display: "flex",
-                  flex: pa,
-                  background: accent,
-                  color: "#FFFFFF",
-                  borderRadius: 16,
-                  padding: "18px 26px",
-                  fontSize: 28,
+                  fontFamily: "Inter",
+                  fontSize: 22,
                   fontWeight: 700,
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  letterSpacing: 3,
+                  textTransform: "uppercase",
+                  color: deep,
                 }}
               >
-                <span>{(post.option_a as string) || "Option A"}</span>
-                <span>{pa}%</span>
+                {category}
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={logo} width={34} height={34} style={{ borderRadius: 17 }} />
+              <div style={{ display: "flex", fontFamily: "Inter", fontSize: 20, fontWeight: 700, color: "#141712" }}>
+                AnonVerdict
+              </div>
+            </div>
+          </div>
+
+          {/* headline */}
+          <div
+            style={{
+              display: "flex",
+              fontFamily: "Newsreader",
+              fontSize: 50,
+              fontWeight: 700,
+              color: "#141712",
+              lineHeight: 1.32,
+              maxWidth: 1010,
+              marginTop: 18,
+            }}
+          >
+            {`“${text}”`}
+          </div>
+
+          {/* footer block */}
+          {isDilemma && post ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 10 }}>
+              <div style={{ display: "flex", gap: 14 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flex: pa,
+                    background: accent,
+                    color: "#FFFFFF",
+                    borderRadius: 999,
+                    padding: "20px 30px",
+                    fontFamily: "Inter",
+                    fontSize: 26,
+                    fontWeight: 700,
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ display: "flex" }}>{(post.option_a as string) || "Option A"}</span>
+                  <span style={{ display: "flex" }}>{pa}%</span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flex: pb,
+                    background: "#F1F0EA",
+                    color: "#3A3F35",
+                    borderRadius: 999,
+                    padding: "20px 30px",
+                    fontFamily: "Inter",
+                    fontSize: 26,
+                    fontWeight: 700,
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ display: "flex" }}>{(post.option_b as string) || "Option B"}</span>
+                  <span style={{ display: "flex" }}>{pb}%</span>
+                </div>
               </div>
               <div
                 style={{
                   display: "flex",
-                  flex: pb,
-                  background: "#EDEBE3",
-                  color: "#141712",
-                  borderRadius: 16,
-                  padding: "18px 26px",
-                  fontSize: 28,
-                  fontWeight: 700,
                   alignItems: "center",
                   justifyContent: "space-between",
+                  fontFamily: "Inter",
+                  fontSize: 22,
+                  color: "#697066",
                 }}
               >
-                <span>{(post.option_b as string) || "Option B"}</span>
-                <span>{pb}%</span>
+                <span style={{ display: "flex" }}>{total.toLocaleString()} strangers have voted</span>
+                <span style={{ display: "flex", fontWeight: 700, color: deep }}>Cast yours at anonverdict.com →</span>
               </div>
             </div>
-            <div style={{ display: "flex", fontSize: 24, color: "#697066" }}>
-              {total.toLocaleString()} strangers have voted — cast yours at anonverdict.com
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                fontFamily: "Inter",
+                fontSize: 22,
+                color: "#697066",
+                marginTop: 10,
+              }}
+            >
+              <span style={{ display: "flex" }}>An anonymous confession</span>
+              <span style={{ display: "flex", fontWeight: 700, color: deep }}>React at anonverdict.com →</span>
             </div>
-          </div>
-        ) : (
-          <div style={{ display: "flex", fontSize: 28, color: "#697066" }}>
-            Read it and react, anonymously — anonverdict.com
-          </div>
-        )}
+          )}
+        </div>
       </div>
     ),
-    { ...size }
+    { ...size, ...(fonts.length ? { fonts } : {}) }
   );
 }
