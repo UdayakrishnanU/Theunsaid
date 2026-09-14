@@ -57,7 +57,7 @@ export default function PrivacyPage() {
           <strong>Supabase</strong> hosts our database — posts, votes, and the private records described above.
         </li>
         <li>
-          <strong>Razorpay</strong> processes all payments. Card, UPI, and other payment details are handled entirely by Razorpay; we only
+          <strong>Cashfree Payments</strong> processes all payments. UPI, card, and other payment details are handled entirely by Cashfree; we only
           receive confirmation that a payment succeeded, not your payment credentials.
         </li>
       </ul>

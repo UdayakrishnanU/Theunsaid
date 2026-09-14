@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useOwnerKey } from "@/app/hooks/useOwnerKey";
 import { useMine } from "@/app/hooks/useMine";
 import { api } from "@/app/lib-client/api";
-import { openRazorpayCheckout } from "@/app/lib-client/razorpayCheckout";
+import { openCashfreeCheckout } from "@/app/lib-client/cashfreeCheckout";
 import { ago, nf, rsum, vsum } from "@/lib/board-helpers";
 import type { Post } from "@/lib/types";
 
@@ -135,21 +135,18 @@ export default function MinePage() {
     setBusyId(id);
     try {
       const res = await api.resumePayment(id, k);
-      if (!res.razorpayKeyId) {
+      if (!res.cashfree) {
         setActionErr("Payments aren't available on this deployment right now.");
         setBusyId(null);
         return;
       }
-      await openRazorpayCheckout({
-        keyId: res.razorpayKeyId,
+      await openCashfreeCheckout({
+        paymentSessionId: res.cashfree.paymentSessionId,
+        mode: res.cashfree.mode,
         orderId: res.order.id,
-        amount: res.order.amount,
-        currency: res.order.currency,
-        name: "AnonVerdict",
-        description: "Resume payment",
-        onSuccess: async ({ orderId, paymentId, signature }) => {
+        onSuccess: async ({ orderId }) => {
           try {
-            await api.confirmPayment(id, { orderId, paymentId, signature });
+            await api.confirmPayment(id, { orderId });
           } catch {
             /* the webhook still catches it either way */
           }

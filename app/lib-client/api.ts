@@ -26,7 +26,13 @@ export const api = {
     idempotencyKey?: string;
   }) =>
     fetch("/api/posts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) =>
-      j<{ postId: string; ownerKey: string; order: { id: string; amount: number; currency: string }; razorpayKeyId?: string; careFlag?: boolean }>(r)
+      j<{
+        postId: string;
+        ownerKey: string;
+        order: { id: string; amount: number; currency: string };
+        cashfree?: { paymentSessionId: string; mode: "sandbox" | "production" };
+        careFlag?: boolean;
+      }>(r)
     ),
 
   vote: (id: string, side: "a" | "b") =>
@@ -59,18 +65,22 @@ export const api = {
   pinFloor: (currency: CurrencyCode) =>
     fetch(`/api/posts/pin-floor?currency=${currency}`, { cache: "no-store" }).then((r) => j<{ floorBase: number; topBase: number }>(r)),
 
-  // Instant, signature-verified payment confirmation — called right after
-  // Razorpay Checkout reports success, so the post can go live without
-  // waiting on the webhook's own delivery time.
-  confirmPayment: (postId: string, body: { orderId: string; paymentId: string; signature: string }) =>
+  // Instant payment confirmation — called right after checkout reports
+  // success, so the post can go live without waiting on the webhook's own
+  // delivery time. Verified server-to-server directly with Cashfree.
+  confirmPayment: (postId: string, body: { orderId: string }) =>
     fetch(`/api/posts/${postId}/confirm`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) =>
       j<{ ok: true; status: string }>(r)
     ),
 
-  // Opens a fresh Razorpay order for a post stuck as pending_payment, so a
+  // Opens a fresh Cashfree order for a post stuck as pending_payment, so a
   // stalled or abandoned checkout has a way back in besides deleting it.
   resumePayment: (postId: string, ownerKey: string) =>
     fetch(`/api/posts/${postId}/resume-payment`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerKey }) }).then(
-      (r) => j<{ order: { id: string; amount: number; currency: string }; razorpayKeyId?: string }>(r)
+      (r) =>
+        j<{
+          order: { id: string; amount: number; currency: string };
+          cashfree?: { paymentSessionId: string; mode: "sandbox" | "production" };
+        }>(r)
     ),
 };

@@ -39,9 +39,9 @@ export default function RefundPage() {
 
       <h3>4. Payment processing</h3>
       <p>
-        Payments are processed by Razorpay. Any card, UPI, or other payment-method details you enter go directly to Razorpay and never touch our
+        Payments are processed by Cashfree Payments. Any UPI, card, or other payment-method details you enter go directly to Cashfree and never touch our
         servers. If a charge looks wrong on your bank or card statement, you're welcome to raise it with us first — we would rather sort it out
-        directly than have you go through a card dispute, which takes longer for everyone.
+        directly than have you go through a payment dispute, which takes longer for everyone.
       </p>
 
       <h3>5. Chargebacks</h3>

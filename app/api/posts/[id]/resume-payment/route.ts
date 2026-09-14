@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hashOwnerKey } from "@/lib/ownerKey";
-import { createOrder } from "@/lib/razorpay";
+import { createOrder, cashfreeMode } from "@/lib/cashfree";
 import { friendlyError } from "@/lib/apiError";
 
 export const runtime = "nodejs";
@@ -11,7 +11,7 @@ const schema = z.object({ ownerKey: z.string().min(4).max(16) });
 
 // POST /api/posts/[id]/resume-payment — for a post stuck as pending_payment
 // (checkout tab closed, bank was slow, or the draft was just abandoned): opens
-// a brand-new Razorpay order for the exact same post/amount instead of
+// a brand-new Cashfree order for the exact same post/amount instead of
 // leaving it as a dead end with no way back in except deleting it.
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -30,7 +30,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   }
 
   try {
-    const order = await createOrder(post.paid_amount_minor, post.currency, id, { postId: id, tier: post.tier, resumed: "true" });
+    // A fresh, never-used order id — Cashfree treats the order_id we choose
+    // as the actual unique identifier, so retrying with the same one would be
+    // rejected as a duplicate.
+    const freshOrderId = `${id}-r${Date.now().toString(36)}`;
+    const order = await createOrder(post.paid_amount_minor, post.currency, freshOrderId, { postId: id, tier: post.tier, resumed: "true" });
     const { error: orderErr } = await sb.from("payment_orders").insert({
       id: order.id,
       post_id: id,
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
     return NextResponse.json({
       order: { id: order.id, amount: post.paid_amount_minor, currency: post.currency },
-      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+      cashfree: { paymentSessionId: order.paymentSessionId, mode: cashfreeMode() },
     });
   } catch (e) {
     return NextResponse.json(

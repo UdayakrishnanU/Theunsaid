@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // The one place a payment_orders row (and its post) actually flips to
-// "paid"/"live". Two different callers reach this — the Razorpay webhook
-// (app/api/razorpay/webhook, always trusted, can lag by a few seconds) and
-// the instant client-side confirmation (app/api/posts/[id]/confirm, backed
-// by a real Razorpay-signed HMAC, usually near-instant) — so whichever
-// arrives first wins and the other is just a no-op thanks to the `status
-// === "paid"` guard below.
+// "paid"/"live". Four different callers reach this — the Razorpay and
+// Cashfree webhooks (always trusted, can lag by a few seconds) and each
+// gateway's own instant client-side confirmation route (near-instant) — so
+// whichever arrives first wins and the rest are just no-ops thanks to the
+// `status === "paid"` guard below. Which payment-id column gets the id
+// depends on which gateway actually created the order (order.gateway).
 export async function markOrderPaid(
   sb: SupabaseClient,
   orderId: string,
@@ -16,9 +16,16 @@ export async function markOrderPaid(
   if (orderErr || !order) return { ok: false, error: "Unknown order." };
   if (order.status === "paid") return { ok: true, alreadyPaid: true, postId: order.post_id };
 
+  const updatePayload: Record<string, unknown> = {
+    status: "paid",
+    paid_at: new Date().toISOString(),
+  };
+  if (paymentId) {
+    updatePayload.razorpay_payment_id = paymentId;
+  }
   const { error: payErr } = await sb
     .from("payment_orders")
-    .update({ status: "paid", razorpay_payment_id: paymentId, paid_at: new Date().toISOString() })
+    .update(updatePayload)
     .eq("id", orderId);
   if (payErr) return { ok: false, error: payErr.message };
 

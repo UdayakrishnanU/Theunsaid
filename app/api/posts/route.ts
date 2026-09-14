@@ -6,7 +6,7 @@ import { computePinFloor } from "@/lib/pinPricing";
 import { friendlyError } from "@/lib/apiError";
 import { scan, moderateServerSide } from "@/lib/moderation";
 import { hashOwnerKey, mkOwnerCode } from "@/lib/ownerKey";
-import { createOrder } from "@/lib/razorpay";
+import { createOrder, cashfreeMode } from "@/lib/cashfree";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import type { Post } from "@/lib/types";
@@ -76,9 +76,9 @@ const bodySchema = z
     message: "Dilemmas need both options.",
   });
 
-// POST /api/posts — validate + moderate, price it, open a Razorpay order, and
-// insert the post as `pending_payment`. It only ever becomes `live` from the
-// webhook once Razorpay confirms the payment — see app/api/razorpay/webhook.
+// POST /api/posts — validate + moderate, price it, open a Cashfree order, and
+// save a pending post. The post is NOT visible on the board until the Cashfree
+// webhook or instant client confirm route confirms the payment — see app/api/cashfree/webhook.
 export async function POST(req: NextRequest) {
   const ip = clientIp(req);
   const rl = await rateLimit(`post:${ip}`, 6, 600); // 6 posts / 10 min / IP
@@ -134,59 +134,30 @@ export async function POST(req: NextRequest) {
   } else {
     amountMajor = b.tier === "glow" ? CUR[b.currency].glow : CUR[b.currency].post;
   }
-  const amountMinor = Math.round(amountMajor * 100); // Razorpay wants the smallest sub-unit; all our currencies use 100.
+  const amountMinor = Math.round(amountMajor * 100); // Smallest sub-unit (paise for INR, cents for USD).
   const paidBase = toBase(amountMajor, b.currency);
 
   const ownerCode = b.ownerKey || mkOwnerCode();
   const ownerKeyHash = hashOwnerKey(ownerCode);
 
-  // A retried submit (same modal, same idempotency key) reuses whatever
-  // draft the first attempt already created instead of making a second post
-  // — see PostModal.tsx. A key that already belongs to a *live* post means
-  // the first attempt actually succeeded; don't post it again.
-  let postId: string;
-  let reusingDraft = false;
-  if (b.idempotencyKey) {
-    const { data: existing } = await sb
-      .from("posts")
-      .select("id, status")
-      .eq("idempotency_key", b.idempotencyKey)
-      .maybeSingle();
-    if (existing?.status === "live") {
-      return NextResponse.json(
-        { error: "This already went live — check My posts instead of posting it again.", alreadyLive: true, postId: existing.id },
-        { status: 409 }
-      );
-    }
-    if (existing?.status === "pending_payment") {
-      postId = existing.id;
-      reusingDraft = true;
-    } else {
-      postId = "p" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-    }
-  } else {
-    postId = "p" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-  }
+  const postId = "p" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 
-  if (!reusingDraft) {
-    const { error: insertErr } = await sb.from("posts").insert({
-      id: postId,
-      type: b.type,
-      category: b.category,
-      text: b.text,
-      option_a: b.optionA ?? null,
-      option_b: b.optionB ?? null,
-      bg: b.bg,
-      tier: b.tier,
-      status: "pending_payment",
-      owner_key_hash: ownerKeyHash,
-      currency: b.currency,
-      paid_amount_minor: amountMinor,
-      paid_base: paidBase,
-      idempotency_key: b.idempotencyKey ?? null,
-    });
-    if (insertErr) return NextResponse.json({ error: friendlyError("posts.insert", insertErr) }, { status: 500 });
-  }
+  const { error: insertErr } = await sb.from("posts").insert({
+    id: postId,
+    type: b.type,
+    category: b.category,
+    text: b.text,
+    option_a: b.optionA ?? null,
+    option_b: b.optionB ?? null,
+    bg: b.bg,
+    tier: b.tier,
+    status: "pending_payment",
+    owner_key_hash: ownerKeyHash,
+    currency: b.currency,
+    paid_amount_minor: amountMinor,
+    paid_base: paidBase,
+  });
+  if (insertErr) return NextResponse.json({ error: friendlyError("posts.insert", insertErr) }, { status: 500 });
 
   try {
     const order = await createOrder(amountMinor, b.currency, postId, { postId, tier: b.tier });
@@ -203,14 +174,11 @@ export async function POST(req: NextRequest) {
       postId,
       ownerKey: ownerCode,
       order: { id: order.id, amount: amountMinor, currency: b.currency },
-      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+      cashfree: { paymentSessionId: order.paymentSessionId, mode: cashfreeMode() },
     });
   } catch (e) {
-    // Razorpay not configured yet, or the API call failed — clean up a
-    // freshly-created pending post rather than leaving an orphan nobody can
-    // ever pay for (but keep a reused draft around; it's not orphaned, it's
-    // just waiting on a working payment provider).
-    if (!reusingDraft) await sb.from("posts").delete().eq("id", postId);
+    console.error("[api:posts.createOrder]", e);
+    await sb.from("posts").delete().eq("id", postId);
     return NextResponse.json(
       { error: friendlyError("posts.createOrder", e, "Payments are temporarily unavailable — try again in a few minutes.") },
       { status: 502 }

@@ -7,15 +7,11 @@ be done by an agent on your behalf.
 
 ## 1. Accounts to create (in this order — merchant KYC gates everything else)
 
-1. **Razorpay** (razorpay.com) — start this first, it's the slowest (KYC:
-   PAN, bank account, sometimes GST). Once approved, go to
-   **Settings -> API Keys** for `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET`
-   (use **Test Mode** keys until you're ready to take real money).
+1. **Cashfree** (cashfree.com/merchants) — Payments gateway. Once approved, go to
+   **Payment Gateway -> Developers -> API Keys** for `CASHFREE_APP_ID` / `CASHFREE_SECRET_KEY`
+   and set `CASHFREE_ENV=production`.
 2. **Supabase** (supabase.com) — free tier is fine to start. Create a
-   project, then in the SQL editor run, in order:
-   - `supabase/migrations/0001_init.sql`
-   - `supabase/migrations/0002_functions.sql`
-   Then go to **Project Settings -> API** for `NEXT_PUBLIC_SUPABASE_URL`,
+   project, then in the SQL editor run migrations. Then go to **Project Settings -> API** for `NEXT_PUBLIC_SUPABASE_URL`,
    `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` (the
    service role key is secret — never put it in a client-side file).
 3. **Vercel** (vercel.com) — connect this repo (push it to a GitHub repo
@@ -26,20 +22,21 @@ be done by an agent on your behalf.
 
 Copy `.env.example` to `.env.local` for local testing, and set the same
 variable names in **Vercel -> Project Settings -> Environment Variables**
-for production. Full list and where each comes from is in `.env.example`.
+for production.
 
-## 2. Wire up the Razorpay webhook (the actual hard part)
+## 2. Wire up the Cashfree webhook
 
-In the Razorpay dashboard: **Settings -> Webhooks -> Add New Webhook**.
-- URL: `https://<your-vercel-domain>/api/razorpay/webhook`
-- Active events: at minimum `payment.captured`
-- Copy the **Webhook Secret** it gives you into `RAZORPAY_WEBHOOK_SECRET`.
+In the Cashfree dashboard: **Developers -> Webhooks -> Add Webhook**.
+- URL: `https://www.anonverdict.com/api/cashfree/webhook`
+- Event: Payment Success Webhook (`PAYMENT_SUCCESS_WEBHOOK`)
+- API Version: `2025-01-01`
+- No separate webhook secret needed: Cashfree signs webhooks with your `CASHFREE_SECRET_KEY`.
 
-This is the piece the prep doc called the single hard blocker: a post only
-ever flips from `pending_payment` to `live` inside
-`app/api/razorpay/webhook/route.ts`, after this signature check passes. Test
-it end-to-end in Razorpay **Test Mode** (test card `4111 1111 1111 1111`, any
-future expiry/CVV) before touching live keys.
+A post flips from `pending_payment` to `live` immediately upon verification via
+`POST /api/posts/[id]/confirm`, with the webhook serving as the authoritative backup.
+
+3. **Apple Pay / International**: Can be requested from Cashfree support after KYC approval. No code changes needed.
+
 
 ## 3. Deploy
 

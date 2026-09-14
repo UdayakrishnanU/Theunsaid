@@ -5,7 +5,7 @@ import { CurrencyDef, dp, fromBase, toBase, Tier } from "@/lib/currency";
 import type { Post } from "@/lib/types";
 import { api } from "@/app/lib-client/api";
 import { useOwnerKey } from "@/app/hooks/useOwnerKey";
-import { openRazorpayCheckout } from "@/app/lib-client/razorpayCheckout";
+import { openCashfreeCheckout } from "@/app/lib-client/cashfreeCheckout";
 import TurnstileWidget from "./TurnstileWidget";
 
 const CONFESSION_HEADLINE_MAX = 150;
@@ -55,7 +55,7 @@ export default function PostModal({
   // One id per time this modal opens. Retrying "Pay and post" without closing
   // the modal (because the first attempt seemed to hang) reuses this same id,
   // so the server can tell it's the same draft instead of creating a second
-  // post and a second Razorpay order for one intended submission.
+  // post and a second Cashfree order for one intended submission.
   const [idemKey, setIdemKey] = useState<string>(() => (typeof crypto !== "undefined" ? crypto.randomUUID() : Math.random().toString(36).slice(2)));
 
   // Local estimate for the very first paint, refined immediately below by the
@@ -142,22 +142,19 @@ export default function PostModal({
         setPhase("form");
         return;
       }
-      if (!res.razorpayKeyId) {
+      if (!res.cashfree) {
         setWarning("Payments aren't available on this deployment right now. Your draft was saved and won't be charged — try again in a few minutes.");
         setPhase("form");
         return;
       }
-      await openRazorpayCheckout({
-        keyId: res.razorpayKeyId,
+      await openCashfreeCheckout({
+        paymentSessionId: res.cashfree.paymentSessionId,
+        mode: res.cashfree.mode,
         orderId: res.order.id,
-        amount: res.order.amount,
-        currency: res.order.currency,
-        name: "AnonVerdict",
-        description: type === "confession" ? "Confession" : "Dilemma",
-        onSuccess: async ({ orderId, paymentId, signature }) => {
+        onSuccess: async ({ orderId }) => {
           setPhase("confirming");
           try {
-            await api.confirmPayment(res.postId, { orderId, paymentId, signature });
+            await api.confirmPayment(res.postId, { orderId });
             onPosted({ postId: res.postId, ownerKey: res.ownerKey, type });
             return;
           } catch {
@@ -170,7 +167,7 @@ export default function PostModal({
             onPosted({ postId: res.postId, ownerKey: res.ownerKey, type });
           } else {
             setWarning(
-              "Razorpay confirmed the charge, but the post hasn't gone live here yet — that can take a couple of minutes. It'll show up on My posts as soon as it lands; if it's still stuck after 10 minutes, contact support with your recovery key and we'll sort it out."
+              "The payment went through, but the post hasn't gone live here yet — that can take a couple of minutes. It'll show up on My posts as soon as it lands; if it's still stuck after 10 minutes, contact support with your recovery key and we'll sort it out."
             );
             setPhase("form");
           }
