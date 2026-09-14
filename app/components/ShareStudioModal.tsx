@@ -107,7 +107,7 @@ export default function ShareStudioModal({
     !window.location.hostname.includes("127.0.0.1")
       ? window.location.origin
       : "https://www.anonverdict.com";
-  const url = data.id ? `${base}/#p=${data.id}` : `${base}/`;
+  const url = data.id ? `${base}/p/${data.id}` : `${base}/`;
 
   async function handleDownload() {
     const canvas = canvasRef.current;
@@ -139,7 +139,6 @@ export default function ShareStudioModal({
           await navigator.share({
             title: "AnonVerdict",
             text: caption,
-            url,
             files: [file],
           });
           setStatus("Poster shared successfully!");
@@ -178,8 +177,24 @@ export default function ShareStudioModal({
     }, "image/png", 1.0);
   }
 
-  function handleShareWhatsApp() {
+  async function handleShareWhatsApp() {
     if (!data) return;
+    const canvas = canvasRef.current;
+    if (canvas && typeof navigator !== "undefined" && navigator.canShare) {
+      const caption = generateShareCaption(data, variant, url);
+      const shared = await new Promise<boolean>((resolve) => {
+        canvas.toBlob((blob) => {
+          if (!blob) return resolve(false);
+          const file = new File([blob], `anonverdict-${variant}-${format}.png`, { type: "image/png" });
+          if (!navigator.canShare({ files: [file] })) return resolve(false);
+          navigator
+            .share({ title: "AnonVerdict", text: caption, files: [file] })
+            .then(() => resolve(true))
+            .catch((err: unknown) => resolve((err as Error)?.name === "AbortError"));
+        }, "image/png", 1.0);
+      });
+      if (shared) return;
+    }
     const text = `“${data.story}”\n\nVote anonymously here: ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }

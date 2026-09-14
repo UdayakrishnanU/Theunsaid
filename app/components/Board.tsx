@@ -259,7 +259,7 @@ export default function Board() {
     openShareStudio(p);
   }
   function copyLink(id: string) {
-    const url = `${window.location.origin}${window.location.pathname}#p=${id}`;
+    const url = `${window.location.origin}/p/${id}`;
     navigator.clipboard?.writeText(url).catch(() => {});
   }
 

@@ -3,9 +3,26 @@ import "./globals.css";
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 
+const SITE_TITLE = "AnonVerdict — anonymous confessions, settled by strangers";
+const SITE_DESCRIPTION =
+  "Post a confession, or hand strangers a decision you're stuck on and let them settle it. Anonymous, always.";
+
 export const metadata: Metadata = {
-  title: "AnonVerdict — anonymous confessions, settled by strangers",
-  description: "Post a confession, or hand strangers a decision you're stuck on and let them settle it. Anonymous, always.",
+  metadataBase: new URL("https://www.anonverdict.com"),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: "AnonVerdict",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: "https://www.anonverdict.com",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
