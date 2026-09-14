@@ -35,15 +35,19 @@ export const api = {
       }>(r)
     ),
 
-  vote: (id: string, side: "a" | "b") =>
-    fetch(`/api/posts/${id}/vote`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ side }) }).then((r) =>
-      j<{ va: number; vb: number; alreadyVoted: boolean }>(r)
-    ),
+  vote: (id: string, side: "a" | "b", ownerKey?: string) =>
+    fetch(`/api/posts/${id}/vote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ side, ownerKey }),
+    }).then((r) => j<{ va: number; vb: number; alreadyVoted: boolean }>(r)),
 
-  react: (id: string, key: string) =>
-    fetch(`/api/posts/${id}/react`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) }).then((r) =>
-      j<{ reactions: Record<string, number> }>(r)
-    ),
+  react: (id: string, key: string, ownerKey?: string) =>
+    fetch(`/api/posts/${id}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, ownerKey }),
+    }).then((r) => j<{ reactions: Record<string, number> }>(r)),
 
   report: (id: string) => fetch(`/api/posts/${id}/report`, { method: "POST" }).then((r) => j<{ reports: number; hidden: boolean }>(r)),
 
@@ -55,7 +59,12 @@ export const api = {
 
   claim: (ownerKey: string) =>
     fetch("/api/claim", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerKey }) }).then((r) =>
-      j<{ posts: (Post & { status: string })[] }>(r)
+      j<{
+        posts: (Post & { status: string })[];
+        // Posts this key voted on or reacted to without creating them — see
+        // app/api/claim/route.ts and supabase/migrations/0008_owner_key_activity.sql.
+        engaged: (Post & { status: string; yourVote?: "a" | "b"; yourReactions?: string[] })[];
+      }>(r)
     ),
 
   presence: () => fetch("/api/presence", { method: "POST" }).then((r) => j<{ online: number; today: number }>(r)),

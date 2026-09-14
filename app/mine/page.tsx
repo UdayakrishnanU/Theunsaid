@@ -3,16 +3,23 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOwnerKey } from "@/app/hooks/useOwnerKey";
 import { useMine } from "@/app/hooks/useMine";
+import { useLocalState } from "@/app/hooks/useLocalState";
 import { api } from "@/app/lib-client/api";
 import { openCashfreeCheckout } from "@/app/lib-client/cashfreeCheckout";
-import { ago, nf, rsum, vsum } from "@/lib/board-helpers";
+import { ago, nf, rsum, vsum, CHIPS } from "@/lib/board-helpers";
 import type { Post } from "@/lib/types";
+
+type OwnedPost = Post & { status: string };
+type EngagedPost = Post & { status: string; yourVote?: "a" | "b"; yourReactions?: string[] };
+
+const CHIP_EMOJI: Record<string, string> = Object.fromEntries(CHIPS.map(([k, emoji]) => [k, emoji]));
 
 export default function MinePage() {
   const router = useRouter();
   const { key, codes, ensure, addCode } = useOwnerKey();
   const mine = useMine();
-  const [posts, setPosts] = useState<(Post & { status: string })[]>([]);
+  const [posts, setPosts] = useState<OwnedPost[]>([]);
+  const [engaged, setEngaged] = useState<EngagedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [claimIn, setClaimIn] = useState("");
   const [claimErr, setClaimErr] = useState<string | null>(null);
@@ -27,6 +34,23 @@ export default function MinePage() {
   // restore() below and useOwnerKey.addCode's `promote` flag.
   const [primaryOwnsAny, setPrimaryOwnsAny] = useState(true);
 
+  // Quiet "you have updates" signal — no push, no accounts, just: did any
+  // post you own or engaged with get an outcome reported since the last time
+  // you opened this page. `lastSeen` persists across visits; `freshIds` is
+  // just for this render (which cards get the "new" dot) and is recomputed,
+  // never persisted, so a stale banner can never survive a refresh.
+  const [lastSeen, setLastSeen] = useLocalState<number>("unsaid_mine_last_seen", 0);
+  const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
+
+  function noteFreshOutcomes(items: (OwnedPost | EngagedPost)[]) {
+    // useLocalState's setter takes a plain value, not an updater — read
+    // `lastSeen` from the closure (fine here: this only ever runs right
+    // after a real load/restore, never twice in the same render pass).
+    const newly = items.filter((p) => p.outcome && p.outcome.at > lastSeen).map((p) => p.id);
+    if (newly.length) setFreshIds((cur) => new Set([...cur, ...newly]));
+    setLastSeen(Date.now());
+  }
+
   useEffect(() => {
     ensure();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -39,16 +63,25 @@ export default function MinePage() {
     }
     if (!silent) setLoading(true);
     try {
-      const { posts } = await api.claim(key);
+      const { posts, engaged } = await api.claim(key);
       posts.forEach((p) => {
         mine.addMine(p.id);
         mine.recordOwner(p.id, key);
       });
+      engaged.forEach((p) => {
+        if (p.yourVote) mine.recordVote(p.id, p.yourVote);
+        (p.yourReactions ?? []).forEach((r) => mine.recordReaction(p.id, r));
+      });
       setPosts(posts);
-      if (!silent) setPrimaryOwnsAny(posts.length > 0);
+      setEngaged(engaged);
+      if (!silent) {
+        setPrimaryOwnsAny(posts.length > 0 || engaged.length > 0);
+        noteFreshOutcomes([...posts, ...engaged]);
+      }
     } catch {
       if (!silent) {
         setPosts([]);
+        setEngaged([]);
         setPrimaryOwnsAny(false);
       }
     } finally {
@@ -96,19 +129,25 @@ export default function MinePage() {
       return;
     }
     try {
-      const { posts: hits } = await api.claim(v);
+      const { posts: hits, engaged: engagedHits } = await api.claim(v);
       hits.forEach((p) => {
         mine.addMine(p.id);
         mine.recordOwner(p.id, v);
       });
-      // This browser's own key never posted anything — the key you're
-      // restoring is the one that actually matters, so make it primary
-      // instead of leaving "Your key" pointing at an empty one.
-      const promote = !primaryOwnsAny && hits.length > 0;
+      engagedHits.forEach((p) => {
+        if (p.yourVote) mine.recordVote(p.id, p.yourVote);
+        (p.yourReactions ?? []).forEach((r) => mine.recordReaction(p.id, r));
+      });
+      // This browser's own key never posted or engaged with anything — the
+      // key you're restoring is the one that actually matters, so make it
+      // primary instead of leaving "Your key" pointing at an empty one.
+      const promote = !primaryOwnsAny && (hits.length > 0 || engagedHits.length > 0);
       addCode(v, promote);
       if (promote) setPrimaryOwnsAny(true);
       setClaimIn("");
       setPosts((cur) => [...hits, ...cur.filter((p) => !hits.some((h) => h.id === p.id))]);
+      setEngaged((cur) => [...engagedHits, ...cur.filter((p) => !engagedHits.some((h) => h.id === p.id))]);
+      noteFreshOutcomes([...hits, ...engagedHits]);
     } catch (e) {
       setClaimErr(e instanceof Error ? e.message : "No posts found under that key.");
     }
@@ -185,10 +224,20 @@ export default function MinePage() {
   return (
     <div className="page">
       <h2>My posts</h2>
-      <p>Everything you have posted, on this device or any other, brought together by one key. Nothing here is visible to anyone else and nothing is linked to your name.</p>
+      <p>
+        Everything you have posted — and everything you have voted on or reacted to — on this device or any other, brought together by one key.
+        Nothing here is visible to anyone else and nothing is linked to your name.
+      </p>
+
+      {freshIds.size > 0 && (
+        <div className="nt w show" role="status" style={{ marginBottom: 16 }}>
+          {freshIds.size === 1 ? "One thing you're watching has an outcome now" : `${freshIds.size} things you're watching have outcomes now`} —
+          look for the highlighted card below.
+        </div>
+      )}
 
       <div className="keybox">
-        <div className="kl">Your key — the same for every post you make</div>
+        <div className="kl">Your key — the same for every post, vote and reaction you make</div>
         <div className="krow">
           <span className="kcode">{key || "—"}</span>
           <button
@@ -204,14 +253,14 @@ export default function MinePage() {
           </button>
         </div>
         <p className="kwhy">
-          Save this somewhere. Enter it on another phone or browser and every post you have made comes back. We cannot recover it for you — we do
-          not know who you are. Anyone holding it controls your posts, so treat it like a password, not a username.
+          Save this somewhere. Enter it on another phone or browser and everything you have posted, voted on and reacted to comes back. We cannot
+          recover it for you — we do not know who you are. Anyone holding it controls your activity, so treat it like a password, not a username.
         </p>
         {codes.length > 1 && <div className="kextra">Also holding: {codes.slice(1).join(", ")}</div>}
       </div>
 
       <div className="claimbox">
-        <label>Posted from another device? Enter that key to bring those posts here</label>
+        <label>Posted, voted or reacted from another device? Enter that key to bring it all here</label>
         <div className="claimrow">
           <input placeholder="UN-XXXXX" maxLength={10} value={claimIn} onChange={(e) => setClaimIn(e.target.value)} />
           <button className="btn gh" onClick={restore}>
@@ -232,7 +281,7 @@ export default function MinePage() {
           </div>
         ) : posts.length ? (
           posts.map((p) => (
-            <div className="mine-row" key={p.id}>
+            <div className="mine-row" key={p.id} style={freshIds.has(p.id) ? { outline: "2px solid #F59E0B" } : undefined}>
               <p className="mt">
                 {p.text.slice(0, 120)}
                 {p.text.length > 120 ? "…" : ""}
@@ -270,6 +319,40 @@ export default function MinePage() {
         ) : (
           <div className="empt">
             <p>Nothing posted with this key yet.</p>
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 32 }}>
+        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Things you voted on or reacted to</h3>
+        <p style={{ fontSize: 13, color: "var(--dim)", marginTop: 0, marginBottom: 12 }}>
+          Posts someone else wrote, that you weighed in on — not yours to edit or delete, just to watch.
+        </p>
+        {engaged.length ? (
+          engaged.map((p) => (
+            <div className="mine-row" key={p.id} style={freshIds.has(p.id) ? { outline: "2px solid #F59E0B" } : undefined}>
+              <p className="mt">
+                {p.text.slice(0, 120)}
+                {p.text.length > 120 ? "…" : ""}
+              </p>
+              <div className="mm">
+                <span>{p.category}</span>
+                <span>{ago(p.at)}</span>
+                {p.yourVote && p.type === "dilemma" && <span>You voted: {p.yourVote === "a" ? p.oa : p.ob}</span>}
+                {p.yourReactions && p.yourReactions.length > 0 && (
+                  <span>You reacted: {p.yourReactions.map((r) => CHIP_EMOJI[r] ?? r).join(" ")}</span>
+                )}
+                {p.outcome && <span>outcome posted</span>}
+              </div>
+              <div className="acts">
+                <button onClick={() => router.push("/#p=" + p.id)}>Open</button>
+                <button onClick={() => copyLink(p.id)}>Copy link</button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="empt">
+            <p>Nothing voted on or reacted to with this key yet.</p>
           </div>
         )}
       </div>

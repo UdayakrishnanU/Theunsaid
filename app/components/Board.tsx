@@ -261,7 +261,7 @@ export default function Board() {
       cur.map((p) => (p.id === id ? { ...p, va: prevVa + (side === "a" ? 1 : 0), vb: prevVb + (side === "b" ? 1 : 0) } : p))
     );
     try {
-      const { va, vb, alreadyVoted } = await api.vote(id, side);
+      const { va, vb, alreadyVoted } = await api.vote(id, side, ensure());
       if (!alreadyVoted) setPosts((cur) => cur.map((p) => (p.id === id ? { ...p, va, vb } : p)));
       return { va, vb };
     } catch {
@@ -283,7 +283,7 @@ export default function Board() {
       )
     );
     try {
-      const { reactions } = await api.react(id, key);
+      const { reactions } = await api.react(id, key, ensure());
       setPosts((cur) => cur.map((p) => (p.id === id ? { ...p, reactions } : p)));
     } catch {
       mine.clearReaction(id, key);
