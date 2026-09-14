@@ -24,14 +24,16 @@ export const api = {
     ownerKey?: string;
     turnstileToken?: string;
     idempotencyKey?: string;
+    devSkipPayment?: boolean;
   }) =>
     fetch("/api/posts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) =>
       j<{
         postId: string;
         ownerKey: string;
-        order: { id: string; amount: number; currency: string };
+        order?: { id: string; amount: number; currency: string };
         cashfree?: { paymentSessionId: string; mode: "sandbox" | "production" };
         careFlag?: boolean;
+        dev?: boolean;
       }>(r)
     ),
 

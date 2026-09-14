@@ -180,7 +180,7 @@ export default function ClosestCallCard({
                   padding: '4px 0'
                 }}
               >
-                Or read full story & comments first →
+                Or read full story & reactions first →
               </button>
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function ClosestCallCard({
                 Share where I landed
               </button>
               <button type="button" className="btn-share-dilemma" onClick={() => onOpen?.(id)}>
-                View full post & comments →
+                View full post & reactions →
               </button>
             </div>
           </div>

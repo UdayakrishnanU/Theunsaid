@@ -7,6 +7,7 @@ import { friendlyError } from "@/lib/apiError";
 import { scan, moderateServerSide } from "@/lib/moderation";
 import { hashOwnerKey, mkOwnerCode } from "@/lib/ownerKey";
 import { createOrder, cashfreeMode } from "@/lib/cashfree";
+import { isAdmin } from "@/lib/adminAuth";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import type { Post } from "@/lib/types";
@@ -71,6 +72,11 @@ const bodySchema = z
     ownerKey: z.string().min(4).max(16).optional(), // existing device key, if the poster already has one
     turnstileToken: z.string().optional(),
     idempotencyKey: z.string().min(8).max(64).optional(), // one per modal-open, see PostModal.tsx
+    // Admin-only, never shown to real visitors: skip Cashfree entirely and
+    // publish immediately, so the owner-key/posting/restore flow can be
+    // exercised for free. Re-checked against an actual admin session below —
+    // a client sending this without a valid admin cookie is silently ignored.
+    devSkipPayment: z.boolean().optional(),
   })
   .refine((d) => d.type !== "dilemma" || (d.optionA && d.optionB), {
     message: "Dilemmas need both options.",
@@ -142,6 +148,11 @@ export async function POST(req: NextRequest) {
 
   const postId = "p" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 
+  // Dev bypass: only ever takes effect for a real, currently-signed-in admin
+  // session — a forged flag from a normal visitor's client does nothing,
+  // since isAdmin() re-checks the httpOnly session cookie server-side.
+  const devBypass = b.devSkipPayment === true && (await isAdmin());
+
   const { error: insertErr } = await sb.from("posts").insert({
     id: postId,
     type: b.type,
@@ -151,13 +162,17 @@ export async function POST(req: NextRequest) {
     option_b: b.optionB ?? null,
     bg: b.bg,
     tier: b.tier,
-    status: "pending_payment",
+    status: devBypass ? "live" : "pending_payment",
     owner_key_hash: ownerKeyHash,
     currency: b.currency,
     paid_amount_minor: amountMinor,
     paid_base: paidBase,
   });
   if (insertErr) return NextResponse.json({ error: friendlyError("posts.insert", insertErr) }, { status: 500 });
+
+  if (devBypass) {
+    return NextResponse.json({ postId, ownerKey: ownerCode, dev: true });
+  }
 
   try {
     const order = await createOrder(amountMinor, b.currency, postId, { postId, tier: b.tier });

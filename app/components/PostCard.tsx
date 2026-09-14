@@ -130,6 +130,9 @@ export default function PostCard({
       background: shade.bgGradient,
       borderColor: shade.border,
       boxShadow: shade.glowShadow,
+      ["--shade-accent" as string]: shade.accent,
+      ["--shade-border" as string]: shade.border,
+      ["--shade-light" as string]: shade.bgLight,
     };
   }
 
@@ -325,8 +328,12 @@ export default function PostCard({
           <div className="post-body-content">
             <h2 className="post-headline" onClick={onOpen}>
               {headline}
-              {rest && <span className="post-headline-rest"> {rest}</span>}
             </h2>
+            {rest && (
+              <p className="post-subtext" onClick={onOpen}>
+                {rest}
+              </p>
+            )}
 
             {/* Dilemma voting bar */}
             {post.type === "dilemma" && (
@@ -413,26 +420,34 @@ export default function PostCard({
           {isBoosted && (
             <div className="post-art-wrap boosted-art" aria-hidden="true">
               <div className="post-art-visual">
-                <svg className="art-bolt-svg" viewBox="0 0 24 24" fill="none">
+                <div
+                  className="art-glow-backdrop"
+                  style={{
+                    background: `radial-gradient(circle, ${shade?.accent || "#F43F5E"}40 0%, ${shade?.accent || "#F43F5E"}12 52%, transparent 72%)`,
+                  }}
+                />
+                <svg
+                  className="art-bolt-svg"
+                  viewBox="0 0 32 32"
+                  fill="none"
+                  style={{
+                    filter: `drop-shadow(0 0 16px ${shade?.accent || "#F43F5E"}85) drop-shadow(0 2px 6px ${shade?.accent || "#F43F5E"}45)`,
+                  }}
+                >
+                  <defs>
+                    <linearGradient id={`boltGrad-${post.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#FFFFFF" />
+                      <stop offset="35%" stopColor={shade?.accent || "#F43F5E"} />
+                      <stop offset="100%" stopColor={shade?.textDark || "#BE123C"} />
+                    </linearGradient>
+                  </defs>
                   <path
-                    d="M13 2L3 14H12L11 22L21 10H12L13 2Z"
-                    fill={shade?.accent || "#F43F5E"}
-                    fillOpacity="0.25"
+                    d="M18 3L6 18H16L14 29L26 14H16L18 3Z"
+                    fill={`url(#boltGrad-${post.id})`}
                     stroke={shade?.accent || "#F43F5E"}
                     strokeWidth="1.2"
                     strokeLinejoin="round"
                   />
-                </svg>
-              </div>
-              <div className="post-art-typography">
-                <span className="art-script-line" style={{ color: shade?.textDark || "#BE123C" }}>
-                  More voices.
-                </span>
-                <span className="art-script-line" style={{ color: shade?.textDark || "#BE123C" }}>
-                  More perspectives.
-                </span>
-                <svg className="art-swoosh-svg" viewBox="0 0 64 8" fill="none">
-                  <path d="M1 5C16 7.5 38 1 63 4" stroke={shade?.accent || "#F43F5E"} strokeWidth="2.2" strokeLinecap="round" />
                 </svg>
               </div>
             </div>
@@ -441,35 +456,39 @@ export default function PostCard({
           {isPinned && (
             <div className="post-art-wrap pinned-art" aria-hidden="true">
               <div className="post-art-visual">
-                <svg className="art-crown-svg" viewBox="0 0 32 32" fill="none">
+                <div className="art-glow-backdrop pinned-glow-backdrop" />
+                <svg className="art-crown-svg" viewBox="0 0 36 36" fill="none">
                   <defs>
-                    <linearGradient id="goldCrownGradCard" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#FDE68A" />
-                      <stop offset="45%" stopColor="#F59E0B" />
-                      <stop offset="100%" stopColor="#B45309" />
+                    <linearGradient id={`goldCrownGradCard-${post.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#FEF08A" />
+                      <stop offset="35%" stopColor="#F59E0B" />
+                      <stop offset="70%" stopColor="#D97706" />
+                      <stop offset="100%" stopColor="#92400E" />
+                    </linearGradient>
+                    <linearGradient id={`goldCrownSheen-${post.id}`} x1="20%" y1="0%" x2="80%" y2="100%">
+                      <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.85" />
+                      <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
                     </linearGradient>
                   </defs>
                   <path
-                    d="M4 9L9 23H23L28 9L20 16L16 7L12 16L4 9Z"
-                    fill="url(#goldCrownGradCard)"
-                    stroke="#B45309"
-                    strokeWidth="1.4"
+                    d="M5 11L10 26H26L31 11L22 18L18 8L14 18L5 11Z"
+                    fill={`url(#goldCrownGradCard-${post.id})`}
+                    stroke="#92400E"
+                    strokeWidth="1.3"
                     strokeLinejoin="round"
                   />
-                  <circle cx="4" cy="9" r="2.2" fill="#FEF3C7" stroke="#B45309" strokeWidth="0.8" />
-                  <circle cx="16" cy="7" r="2.4" fill="#FEF3C7" stroke="#B45309" strokeWidth="0.8" />
-                  <circle cx="28" cy="9" r="2.2" fill="#FEF3C7" stroke="#B45309" strokeWidth="0.8" />
-                </svg>
-              </div>
-              <div className="post-art-typography">
-                <span className="art-script-line" style={{ color: "#78350F" }}>
-                  Top of the feed.
-                </span>
-                <span className="art-script-line" style={{ color: "#78350F" }}>
-                  Bigger conversations.
-                </span>
-                <svg className="art-swoosh-svg" viewBox="0 0 64 8" fill="none">
-                  <path d="M1 5C16 7.5 38 1 63 4" stroke="#D97706" strokeWidth="2.2" strokeLinecap="round" />
+                  <path
+                    d="M6.5 12.5L10.5 24.5H25.5L29.5 12.5L22 18.5L18 9.5L14 18.5L6.5 12.5Z"
+                    fill={`url(#goldCrownSheen-${post.id})`}
+                    opacity="0.35"
+                  />
+                  <rect x="9" y="24" width="18" height="3" rx="1.5" fill="#B45309" stroke="#78350F" strokeWidth="0.8" />
+                  <circle cx="13" cy="25.5" r="0.9" fill="#FEF3C7" />
+                  <circle cx="18" cy="25.5" r="1.1" fill="#FEF3C7" />
+                  <circle cx="23" cy="25.5" r="0.9" fill="#FEF3C7" />
+                  <circle cx="5" cy="11" r="2.4" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.9" />
+                  <circle cx="18" cy="8" r="2.8" fill="#FEF08A" stroke="#92400E" strokeWidth="0.9" />
+                  <circle cx="31" cy="11" r="2.4" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.9" />
                 </svg>
               </div>
             </div>
@@ -487,14 +506,6 @@ export default function PostCard({
                 <line x1="6" y1="20" x2="6" y2="14" />
               </svg>
               <span className="stat-text">{formatScore(totalVotes || displayScore)} votes</span>
-            </span>
-
-            {/* Comments / responses stat */}
-            <span className="post-stat-item">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              <span className="stat-text">{formatScore(totalReacts || Math.round(displayScore * 0.45))} comments</span>
             </span>
 
             {/* Views stat */}
