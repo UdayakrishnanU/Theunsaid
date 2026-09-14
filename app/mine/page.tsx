@@ -14,6 +14,32 @@ type EngagedPost = Post & { status: string; yourVote?: "a" | "b"; yourReactions?
 
 const CHIP_EMOJI: Record<string, string> = Object.fromEntries(CHIPS.map(([k, emoji]) => [k, emoji]));
 
+// Combine two engaged-post lists without silently dropping one side when the
+// SAME post appears in both -- which happens whenever two keys that are now
+// both held on this device separately voted/reacted to the same post (e.g.
+// one key reacted "red flag" from one device, another key reacted "same" to
+// the very same post from a different device, and both keys just ended up
+// restored together here). A plain id-based dedupe would keep only whichever
+// list "won", quietly hiding a real reaction. `newer` wins on ties.
+function mergeEngaged(newer: EngagedPost[], existing: EngagedPost[]): EngagedPost[] {
+  const merged = new Map<string, EngagedPost>();
+  for (const p of existing) merged.set(p.id, p);
+  for (const hit of newer) {
+    const prev = merged.get(hit.id);
+    merged.set(hit.id, prev
+      ? {
+          ...hit,
+          yourVote: hit.yourVote ?? prev.yourVote,
+          yourReactions: Array.from(new Set([...(prev.yourReactions ?? []), ...(hit.yourReactions ?? [])])),
+        }
+      : hit);
+  }
+  // Keep the newly-restored posts floating to the top (matches the existing
+  // "posts" merge behavior below), everything else keeps its prior order.
+  const newerIds = new Set(newer.map((h) => h.id));
+  return [...newer.map((h) => merged.get(h.id)!), ...existing.filter((p) => !newerIds.has(p.id))];
+}
+
 export default function MinePage() {
   const router = useRouter();
   const { key, codes, ensure, addCode } = useOwnerKey();
@@ -146,7 +172,7 @@ export default function MinePage() {
       if (promote) setPrimaryOwnsAny(true);
       setClaimIn("");
       setPosts((cur) => [...hits, ...cur.filter((p) => !hits.some((h) => h.id === p.id))]);
-      setEngaged((cur) => [...engagedHits, ...cur.filter((p) => !engagedHits.some((h) => h.id === p.id))]);
+      setEngaged((cur) => mergeEngaged(engagedHits, cur));
       noteFreshOutcomes([...hits, ...engagedHits]);
     } catch (e) {
       setClaimErr(e instanceof Error ? e.message : "No posts found under that key.");
