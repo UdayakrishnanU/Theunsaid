@@ -273,7 +273,7 @@ button{font-family:inherit}
 .card.conf .txt::before{content:"\201C"}.card.conf .txt::after{content:"\201D"}
 
 /* bar */
-.bar-wrap{margin:0 0 14px;max-width:52ch}
+.bar-wrap{margin:24px 0 16px;max-width:52ch}
 .blab{display:flex;justify-content:space-between;gap:14px;margin-bottom:7px;font-size:13.5px;font-weight:600;color:var(--ink)}
 .blab .r{text-align:right}
 .bar{display:flex;height:42px;border-radius:999px;overflow:hidden;background:#F2F2F0;border:1px solid var(--rule);position:relative}
@@ -1921,7 +1921,7 @@ a.lnk{text-decoration:none;cursor:pointer}
   font-weight: 500;
   line-height: 1.48;
   color: #334155;
-  margin: 0 0 8px;
+  margin: 0 0 14px;
   cursor: pointer;
   transition: color 0.15s ease;
 }
