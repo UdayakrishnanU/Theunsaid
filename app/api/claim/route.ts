@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { hashOwnerKey } from "@/lib/ownerKey";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { friendlyError } from "@/lib/apiError";
+import { applyEngagementDrip } from "@/lib/engagementDrip";
 import type { Post } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
     .order("created_at", { ascending: false });
   if (ownedErr) return NextResponse.json({ error: friendlyError("claim.posts", ownedErr) }, { status: 500 });
 
-  const posts = (ownedRows ?? []).map(rowToPost);
+  const posts = (ownedRows ?? []).map(rowToPost).map(applyEngagementDrip);
   const ownedIds = new Set(posts.map((p) => p.id));
 
   const [{ data: voteRows, error: voteErr }, { data: reactionRows, error: reactionErr }] = await Promise.all([
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
     if (engagedErr) return NextResponse.json({ error: friendlyError("claim.engaged", engagedErr) }, { status: 500 });
     engaged = (engagedRows ?? [])
       .map((r) => {
-        const p = rowToPost(r);
+        const p = applyEngagementDrip(rowToPost(r));
         const yourVote = voteByPost.get(p.id);
         const yourReactions = reactionsByPost.get(p.id);
         return { ...p, ...(yourVote ? { yourVote } : {}), ...(yourReactions ? { yourReactions } : {}) };

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hashOwnerKey } from "@/lib/ownerKey";
 import { friendlyError } from "@/lib/apiError";
+import { applyEngagementDrip } from "@/lib/engagementDrip";
 import type { Post } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -35,7 +36,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   const sb = supabaseAdmin();
   const { data, error } = await sb.from("posts").select("*").eq("id", id).eq("hidden", false).single();
   if (error || !data) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  return NextResponse.json({ post: rowToPost(data) });
+  return NextResponse.json({ post: applyEngagementDrip(rowToPost(data)) });
 }
 
 const delSchema = z.object({ ownerKey: z.string().min(4).max(16) });

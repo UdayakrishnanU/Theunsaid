@@ -2,6 +2,9 @@ import { ImageResponse } from "next/og";
 import { supabaseAdmin } from "@/lib/supabase";
 import { C, TC } from "@/lib/board-helpers";
 import { loadBrandFonts } from "@/lib/og-font";
+import { applyEngagementDrip } from "@/lib/engagementDrip";
+import type { Tier } from "@/lib/currency";
+import type { PostType } from "@/lib/types";
 import { readFile } from "fs/promises";
 import path from "path";
 
@@ -47,8 +50,21 @@ export default async function Image({
 
   const text = summarize((post?.text as string) || "Someone needs the crowd's verdict.", isDilemma ? 150 : 210);
 
-  const va = (post?.va as number) || 0;
-  const vb = (post?.vb as number) || 0;
+  // Same organic engagement-drip curve the board uses, so a shared card's
+  // vote split matches what a visitor sees when they click through.
+  const dripped = post
+    ? applyEngagementDrip({
+        id: post.id as string,
+        tier: post.tier as Tier,
+        type: post.type as PostType,
+        at: new Date(post.created_at as string).getTime(),
+        va: (post.va as number) || 0,
+        vb: (post.vb as number) || 0,
+        reactions: (post.reactions as Record<string, number>) || {},
+      })
+    : null;
+  const va = dripped?.va ?? 0;
+  const vb = dripped?.vb ?? 0;
   const total = va + vb;
   const pa = total ? Math.round((va / total) * 100) : 50;
   const pb = 100 - pa;

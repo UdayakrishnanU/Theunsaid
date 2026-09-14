@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "./supabase";
 import type { Post } from "./types";
 import type { CurrencyCode } from "./currency";
+import { applyEngagementDrip } from "./engagementDrip";
 
 export function rowToPost(r: Record<string, unknown>): Post {
   return {
@@ -40,7 +41,11 @@ export async function getLivePosts(limit = 1000): Promise<Post[]> {
       console.error("Error fetching live posts from Supabase:", error);
       return [];
     }
-    return data.map(rowToPost);
+    // Board-facing read: every live post (seed or real) gets its display
+    // counts topped up by the organic engagement-drip curve. Real votes
+    // always win -- see lib/engagementDrip.ts. Nothing here is written
+    // back to the database.
+    return data.map(rowToPost).map(applyEngagementDrip);
   } catch (err) {
     console.error("Exception in getLivePosts:", err);
     return [];
