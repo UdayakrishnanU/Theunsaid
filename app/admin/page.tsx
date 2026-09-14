@@ -34,6 +34,10 @@ export default function AdminPage() {
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recPostId, setRecPostId] = useState("");
+  const [recOwnerKey, setRecOwnerKey] = useState("");
+  const [recMsg, setRecMsg] = useState<string | null>(null);
+  const [recBusy, setRecBusy] = useState(false);
 
   async function load() {
     const [r1, r2] = await Promise.all([fetch("/api/admin/reports"), fetch("/api/admin/summary")]);
@@ -70,6 +74,25 @@ export default function AdminPage() {
   async function takedown(id: string, action: "hide" | "unhide") {
     await fetch(`/api/admin/posts/${id}/takedown`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
     load();
+  }
+
+  async function reassignOwner() {
+    setRecMsg(null);
+    setRecBusy(true);
+    try {
+      const res = await fetch(`/api/admin/posts/${recPostId.trim()}/reassign-owner`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerKey: recOwnerKey.trim() }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Could not reassign.");
+      setRecMsg(`Done — ${recPostId.trim()} now belongs to ${recOwnerKey.trim()}.`);
+    } catch (e) {
+      setRecMsg(e instanceof Error ? e.message : "Could not reassign.");
+    } finally {
+      setRecBusy(false);
+    }
   }
 
   if (!authed) {
@@ -126,6 +149,23 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      <div className="admin-card">
+        <h3 style={{ marginTop: 0 }}>Recover a post</h3>
+        <p style={{ fontSize: 13, marginTop: 0 }}>
+          Re-point a post at a different owner key — for when someone paid and posted, but their browser lost the key
+          (e.g. cleared storage, or the fixed bug that could silently swap it). Only do this once you&apos;re sure the
+          post is really theirs.
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <input placeholder="Post id (e.g. p3495d9edf18546dd)" value={recPostId} onChange={(e) => setRecPostId(e.target.value)} style={{ minWidth: 220 }} />
+          <input placeholder="Owner key (e.g. UN-AB3KX)" value={recOwnerKey} onChange={(e) => setRecOwnerKey(e.target.value)} style={{ minWidth: 160 }} />
+          <button className="btn" onClick={reassignOwner} disabled={recBusy || !recPostId.trim() || !recOwnerKey.trim()}>
+            Reassign
+          </button>
+        </div>
+        {recMsg && <div style={{ marginTop: 8, fontSize: 13 }}>{recMsg}</div>}
+      </div>
 
       <div className="admin-card">
         <h3 style={{ marginTop: 0 }}>Report queue</h3>
