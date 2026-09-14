@@ -67,6 +67,7 @@ export default function MinePage() {
   // never persisted, so a stale banner can never survive a refresh.
   const [lastSeen, setLastSeen] = useLocalState<number>("unsaid_mine_last_seen", 0);
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
+  const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
 
   function noteFreshOutcomes(items: (OwnedPost | EngagedPost)[]) {
     // useLocalState's setter takes a plain value, not an updater — read
@@ -79,6 +80,25 @@ export default function MinePage() {
 
   useEffect(() => {
     ensure();
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const cfOrderId = params.get("cf_order_id");
+      if (cfOrderId) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        const postId = cfOrderId.split("-r")[0];
+        setPaymentNotice("Verifying your payment...");
+        api
+          .confirmPayment(postId, { orderId: cfOrderId })
+          .then(() => {
+            setPaymentNotice("Payment received! Your post is now live.");
+            reload(true);
+          })
+          .catch(() => {
+            setPaymentNotice("Payment received. Processing your post...");
+            reload(true);
+          });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -267,6 +287,12 @@ export default function MinePage() {
         Everything you have posted — and everything you have voted on or reacted to — on this device or any other, brought together by one key.
         Nothing here is visible to anyone else and nothing is linked to your name.
       </p>
+
+      {paymentNotice && (
+        <div className="nt w show" role="status" style={{ marginBottom: 16 }}>
+          {paymentNotice}
+        </div>
+      )}
 
       {freshIds.size > 0 && (
         <div className="nt w show" role="status" style={{ marginBottom: 16 }}>

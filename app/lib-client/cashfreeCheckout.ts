@@ -37,13 +37,25 @@ export async function openCashfreeCheckout(opts: {
   orderId: string;
   onSuccess: (resp: { orderId: string }) => void;
   onDismiss: () => void;
+  redirectTarget?: "_modal" | "_self" | "_blank";
 }): Promise<void> {
   await loadScript();
   if (!window.Cashfree) throw new Error("Cashfree failed to load.");
   const cashfree = window.Cashfree({ mode: opts.mode });
+
+  // On mobile devices, redirectTarget: "_self" is required for UPI Intent to
+  // directly trigger native UPI apps (PhonePe, GPay, Paytm) without iframe
+  // sandbox restrictions. On desktop, "_modal" displays the dynamic QR code scanner.
+  const isMobile =
+    typeof window !== "undefined" &&
+    (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (window.matchMedia && window.matchMedia("(max-width: 768px)").matches && "ontouchstart" in window));
+
+  const target = opts.redirectTarget ?? (isMobile ? "_self" : "_modal");
+
   const result = await cashfree.checkout({
     paymentSessionId: opts.paymentSessionId,
-    redirectTarget: "_modal",
+    redirectTarget: target,
   });
   if (result?.error) {
     // Covers both "closed the modal" and an outright failed payment — no

@@ -45,6 +45,9 @@ export async function createOrder(
   notes: Record<string, string>
 ): Promise<{ id: string; cfOrderId: string; paymentSessionId: string }> {
   const isInr = currency === "INR";
+  const siteUrl =
+    process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://www.anonverdict.com");
+
   const res = await fetch(`${baseUrl()}/orders`, {
     method: "POST",
     headers: headers(),
@@ -62,12 +65,16 @@ export async function createOrder(
         customer_phone: "9999999999",
       },
       order_meta: {
-        // Cashfree's checkout screen follows this order — UPI first for INR
-        // sends Indian payers straight to the UPI intent/QR screen. Left
-        // unset for non-INR orders so Cashfree's own international default
-        ...(isInr ? { payment_methods: "upi,cc,dc,nb,app,paylater,emi" } : {}),
-        return_url: "https://www.anonverdict.com/mine?cf_order_id={order_id}",
-        notify_url: "https://www.anonverdict.com/api/cashfree/webhook",
+        // Cashfree's checkout screen prioritizes UPI for INR orders and
+        // displays top UPI apps (PhonePe, GPay, Paytm) for 1-tap intent.
+        ...(isInr
+          ? {
+              payment_methods: "upi,cc,dc,nb,app,paylater,emi",
+              upi_app_priority: ["phonepe", "gpay", "paytm", "cred", "bhim", "amazonpay"],
+            }
+          : {}),
+        return_url: `${siteUrl}/mine?cf_order_id={order_id}`,
+        notify_url: `${siteUrl}/api/cashfree/webhook`,
       },
       ...(notes.tier ? { order_note: `tier:${notes.tier}` } : {}),
     }),
