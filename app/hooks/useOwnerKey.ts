@@ -10,11 +10,17 @@ function mkCode(): string {
  * device (see /mine) brings back everything it owns, per lib/ownerKey.ts on
  * the server. Mirrors the original's myCodes/myKey/addCode. */
 export function useOwnerKey() {
-  const [codes, setCodes] = useLocalState<string[]>("unsaid_codes", []);
+  const [codes, setCodes, codesRef] = useLocalState<string[]>("unsaid_codes", []);
   const key = codes[0];
 
   const ensure = (): string => {
-    if (codes.length) return codes[0];
+    // Read the ref, not `codes` — `codes` can still be the pre-hydration `[]`
+    // here even after localStorage has already been read, if this runs from
+    // a mount-time effect in the same component (see useLocalState's doc
+    // comment). The ref is always current, so this never mints a fresh key
+    // over a real one just because hydration's re-render hasn't landed yet.
+    const current = codesRef.current;
+    if (current.length) return current[0];
     const c = mkCode();
     setCodes([c]);
     return c;
@@ -25,11 +31,12 @@ export function useOwnerKey() {
   // so "Your key" at the top of /mine matches the key that owns your stuff
   // instead of a blank auto-generated one nobody saved.
   const addCode = (c: string, promote = false) => {
-    if (codes.includes(c)) {
-      if (promote && codes[0] !== c) setCodes([c, ...codes.filter((x) => x !== c)]);
+    const current = codesRef.current;
+    if (current.includes(c)) {
+      if (promote && current[0] !== c) setCodes([c, ...current.filter((x) => x !== c)]);
       return;
     }
-    setCodes(promote ? [c, ...codes] : [...codes, c]);
+    setCodes(promote ? [c, ...current] : [...current, c]);
   };
 
   return { key: key || null, codes, ensure, addCode };
