@@ -127,9 +127,7 @@ export default function PostCard({
   } else if (isBoosted && shade) {
     cardClass += " card-boosted";
     cardStyle = {
-      background: shade.bgGradient,
       borderColor: shade.border,
-      boxShadow: shade.glowShadow,
       ["--shade-accent" as string]: shade.accent,
       ["--shade-border" as string]: shade.border,
       ["--shade-light" as string]: shade.bgLight,
@@ -420,20 +418,7 @@ export default function PostCard({
           {isBoosted && (
             <div className="post-art-wrap boosted-art" aria-hidden="true">
               <div className="post-art-visual">
-                <div
-                  className="art-glow-backdrop"
-                  style={{
-                    background: `radial-gradient(circle, ${shade?.accent || "#F43F5E"}40 0%, ${shade?.accent || "#F43F5E"}12 52%, transparent 72%)`,
-                  }}
-                />
-                <svg
-                  className="art-bolt-svg"
-                  viewBox="0 0 32 32"
-                  fill="none"
-                  style={{
-                    filter: `drop-shadow(0 0 16px ${shade?.accent || "#F43F5E"}85) drop-shadow(0 2px 6px ${shade?.accent || "#F43F5E"}45)`,
-                  }}
-                >
+                <svg className="art-bolt-svg" viewBox="0 0 32 32" fill="none">
                   <defs>
                     <linearGradient id={`boltGrad-${post.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#FFFFFF" />
@@ -456,7 +441,6 @@ export default function PostCard({
           {isPinned && (
             <div className="post-art-wrap pinned-art" aria-hidden="true">
               <div className="post-art-visual">
-                <div className="art-glow-backdrop pinned-glow-backdrop" />
                 <svg className="art-crown-svg" viewBox="0 0 36 36" fill="none">
                   <defs>
                     <linearGradient id={`goldCrownGradCard-${post.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
