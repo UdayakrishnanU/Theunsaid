@@ -118,24 +118,184 @@ export default function PostCard({
     }, 1200);
   }
 
+  const cardRef = useRef<HTMLElement>(null);
+
+  // Dynamic scroll position tracker for pinned & boosted cards across all browsers
+  useEffect(() => {
+    if (!isPinned && !isBoosted) return;
+    const el = cardRef.current;
+    if (!el) return;
+
+    let rafId: number;
+    let isVisible = false;
+
+    const updateScroll = () => {
+      if (!isVisible || !el) return;
+      const rect = el.getBoundingClientRect();
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+      const totalDist = windowHeight + rect.height;
+      const currentDist = windowHeight - rect.top;
+      const progress = Math.max(0, Math.min(1, currentDist / totalDist));
+      const percentage = Math.round(progress * 100);
+      el.style.setProperty("--scroll-pos", `${percentage}%`);
+    };
+
+    const onScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateScroll);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isVisible = entry.isIntersecting;
+          if (isVisible) {
+            updateScroll();
+            window.addEventListener("scroll", onScroll, { passive: true });
+            window.addEventListener("resize", onScroll, { passive: true });
+          } else {
+            window.removeEventListener("scroll", onScroll);
+            window.removeEventListener("resize", onScroll);
+          }
+        });
+      },
+      { rootMargin: "80px 0px" }
+    );
+
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(rafId);
+    };
+  }, [isPinned, isBoosted]);
+
   // Visual card styles
   let cardClass = "feed-post-card";
   let cardStyle: React.CSSProperties = {};
 
   if (isPinned) {
     cardClass += " card-pinned";
+    cardStyle = {
+      ...cardStyle,
+      ["--pin-border" as string]: "#F59E0B",
+    };
   } else if (isBoosted && shade) {
     cardClass += " card-boosted";
     cardStyle = {
+      ...cardStyle,
       borderColor: shade.border,
       ["--shade-accent" as string]: shade.accent,
       ["--shade-border" as string]: shade.border,
       ["--shade-light" as string]: shade.bgLight,
+      ["--shade-gradient" as string]: shade.bgGradient,
     };
   }
 
   return (
-    <article className={cardClass} style={cardStyle}>
+    <article ref={cardRef} className={cardClass} style={cardStyle}>
+      {/* Pinned Card Golden Wave & Royal Crown Watermark */}
+      {isPinned && (
+        <div className="card-pinned-watermark" aria-hidden="true">
+          <svg className="pinned-bg-svg" viewBox="0 0 900 320" preserveAspectRatio="none" fill="none">
+            <defs>
+              <linearGradient id={`goldSwoopGrad-${post.id}`} x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.0" />
+                <stop offset="35%" stopColor="#FBBF24" stopOpacity="0.22" />
+                <stop offset="70%" stopColor="#FDE047" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#D97706" stopOpacity="0.38" />
+              </linearGradient>
+              <linearGradient id={`goldSwoopHighlight-${post.id}`} x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.0" />
+                <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#FEF08A" stopOpacity="0.2" />
+              </linearGradient>
+              <linearGradient id={`watermarkCrownGrad-${post.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.16" />
+                <stop offset="100%" stopColor="#FBBF24" stopOpacity="0.04" />
+              </linearGradient>
+            </defs>
+
+            {/* Large Royal Crown Watermark in Bottom-Right */}
+            <g className="watermark-crown" transform="translate(680, 110) scale(4.4)">
+              <path
+                d="M2 7L6 23H26L30 7L21 15L16 3L11 15L2 7Z"
+                fill={`url(#watermarkCrownGrad-${post.id})`}
+              />
+              <circle cx="2" cy="7" r="2" fill={`url(#watermarkCrownGrad-${post.id})`} />
+              <circle cx="16" cy="3" r="2.4" fill={`url(#watermarkCrownGrad-${post.id})`} />
+              <circle cx="30" cy="7" r="2" fill={`url(#watermarkCrownGrad-${post.id})`} />
+            </g>
+
+            {/* Graceful Golden Ribbon / Wave Swoop in Bottom-Right */}
+            <path
+              d="M520 320 Q 680 305 780 210 Q 820 170 850 110 L 900 110 L 900 320 Z"
+              fill={`url(#goldSwoopGrad-${post.id})`}
+            />
+            <path
+              d="M520 320 Q 680 305 780 210 Q 820 170 850 110"
+              stroke={`url(#goldSwoopHighlight-${post.id})`}
+              strokeWidth="2.5"
+            />
+
+            {/* Golden 4-point Sparkle Stars */}
+            <g transform="translate(42, 175) scale(0.9)" opacity="0.65">
+              <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#F59E0B" />
+            </g>
+            <g transform="translate(730, 85) scale(1.15)" opacity="0.75">
+              <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#FBBF24" />
+            </g>
+            <g transform="translate(615, 175) scale(0.85)" opacity="0.55">
+              <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#F59E0B" />
+            </g>
+            <g transform="translate(590, 255) scale(0.7)" opacity="0.5">
+              <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#F59E0B" />
+            </g>
+          </svg>
+        </div>
+      )}
+
+      {/* Boosted Card Rose Wave Watermark */}
+      {isBoosted && (
+        <div className="card-boosted-watermark" aria-hidden="true">
+          <svg className="boosted-bg-svg" viewBox="0 0 900 320" preserveAspectRatio="none" fill="none">
+            <defs>
+              <linearGradient id={`pinkSwoopGrad-${post.id}`} x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#F43F5E" stopOpacity="0.0" />
+                <stop offset="45%" stopColor="#FDA4AF" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="#FF2E7E" stopOpacity="0.32" />
+              </linearGradient>
+              <linearGradient id={`pinkSwoopHighlight-${post.id}`} x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.0" />
+                <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#FECDD3" stopOpacity="0.1" />
+              </linearGradient>
+            </defs>
+
+            {/* Graceful Pink Ribbon / Wave Swoop in Bottom-Right */}
+            <path
+              d="M540 320 Q 700 305 790 220 Q 830 180 855 125 L 900 125 L 900 320 Z"
+              fill={`url(#pinkSwoopGrad-${post.id})`}
+            />
+            <path
+              d="M540 320 Q 700 305 790 220 Q 830 180 855 125"
+              stroke={`url(#pinkSwoopHighlight-${post.id})`}
+              strokeWidth="2.2"
+            />
+
+            {/* Soft pink sparkle stars */}
+            <g transform="translate(50, 180) scale(0.85)" opacity="0.5">
+              <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#F43F5E" />
+            </g>
+            <g transform="translate(735, 90) scale(1.0)" opacity="0.6">
+              <path d="M10 0 Q10 10 0 10 Q10 10 10 20 Q10 10 20 10 Q10 10 10 0Z" fill="#FB7185" />
+            </g>
+          </svg>
+        </div>
+      )}
+
       {/* Left Vote Score Column */}
       <div className="post-vote-col">
         <button
@@ -414,25 +574,20 @@ export default function PostCard({
             </div>
           </div>
 
-          {/* Right-Side Decorative Artwork (Boosted & Pinned) */}
+          {/* Right-Side Decorative Artwork Banner (Boosted & Pinned) */}
           {isBoosted && (
             <div className="post-art-wrap boosted-art" aria-hidden="true">
-              <div className="post-art-visual">
-                <svg className="art-bolt-svg" viewBox="0 0 32 32" fill="none">
-                  <defs>
-                    <linearGradient id={`boltGrad-${post.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#FFFFFF" />
-                      <stop offset="35%" stopColor={shade?.accent || "#F43F5E"} />
-                      <stop offset="100%" stopColor={shade?.textDark || "#BE123C"} />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M18 3L6 18H16L14 29L26 14H16L18 3Z"
-                    fill={`url(#boltGrad-${post.id})`}
-                    stroke={shade?.accent || "#F43F5E"}
-                    strokeWidth="1.2"
-                    strokeLinejoin="round"
-                  />
+              <div className="art-slogan slogan-boosted">
+                <span className="slogan-line">More voices.</span>
+                <span className="slogan-line">More perspectives.</span>
+                <svg className="slogan-swoop" viewBox="0 0 80 8" fill="none">
+                  <path d="M2 3C25 8 55 8 78 2" stroke="#E11D48" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div className="post-art-visual bolt-visual">
+                <svg className="art-bolt-svg" viewBox="0 0 36 36" fill="none">
+                  <path d="M16 2L6 18H15L12 34L26 16H16L18 2Z" fill="#FDA4AF" fillOpacity="0.85" />
+                  <path d="M20 5L11 20H19L16 33L29 18H20L22 5Z" fill="#F43F5E" />
                 </svg>
               </div>
             </div>
@@ -440,8 +595,15 @@ export default function PostCard({
 
           {isPinned && (
             <div className="post-art-wrap pinned-art" aria-hidden="true">
-              <div className="post-art-visual">
-                <svg className="art-crown-svg" viewBox="0 0 36 36" fill="none">
+              <div className="art-slogan slogan-pinned">
+                <span className="slogan-line">Top of the feed.</span>
+                <span className="slogan-line">Bigger conversations.</span>
+                <svg className="slogan-swoop" viewBox="0 0 90 8" fill="none">
+                  <path d="M2 3C28 8 62 8 88 2" stroke="#B45309" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div className="post-art-visual crown-visual">
+                <svg className="art-crown-svg" viewBox="0 0 40 40" fill="none">
                   <defs>
                     <linearGradient id={`goldCrownGradCard-${post.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#FEF08A" />
@@ -455,24 +617,25 @@ export default function PostCard({
                     </linearGradient>
                   </defs>
                   <path
-                    d="M5 11L10 26H26L31 11L22 18L18 8L14 18L5 11Z"
+                    d="M6 13L11 27H29L34 13L25 19L20 8L15 19L6 13Z"
                     fill={`url(#goldCrownGradCard-${post.id})`}
-                    stroke="#92400E"
-                    strokeWidth="1.3"
+                    stroke="#78350F"
+                    strokeWidth="1.2"
                     strokeLinejoin="round"
                   />
                   <path
-                    d="M6.5 12.5L10.5 24.5H25.5L29.5 12.5L22 18.5L18 9.5L14 18.5L6.5 12.5Z"
+                    d="M7.5 14.5L11.5 25.5H28.5L32.5 14.5L25 19.5L20 9.5L15 19.5L7.5 14.5Z"
                     fill={`url(#goldCrownSheen-${post.id})`}
-                    opacity="0.35"
+                    opacity="0.38"
                   />
-                  <rect x="9" y="24" width="18" height="3" rx="1.5" fill="#B45309" stroke="#78350F" strokeWidth="0.8" />
-                  <circle cx="13" cy="25.5" r="0.9" fill="#FEF3C7" />
-                  <circle cx="18" cy="25.5" r="1.1" fill="#FEF3C7" />
-                  <circle cx="23" cy="25.5" r="0.9" fill="#FEF3C7" />
-                  <circle cx="5" cy="11" r="2.4" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.9" />
-                  <circle cx="18" cy="8" r="2.8" fill="#FEF08A" stroke="#92400E" strokeWidth="0.9" />
-                  <circle cx="31" cy="11" r="2.4" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.9" />
+                  <rect x="10" y="25" width="20" height="3" rx="1.5" fill="#B45309" stroke="#78350F" strokeWidth="0.8" />
+                  <circle cx="14" cy="26.5" r="1" fill="#FEF3C7" />
+                  <circle cx="20" cy="26.5" r="1.2" fill="#FEF3C7" />
+                  <circle cx="26" cy="26.5" r="1" fill="#FEF3C7" />
+                  <circle cx="6" cy="13" r="2.5" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.9" />
+                  <circle cx="20" cy="8" r="3" fill="#FEF08A" stroke="#92400E" strokeWidth="0.9" />
+                  <circle cx="34" cy="13" r="2.5" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.9" />
+                  <path d="M36 6 Q36 9 33 9 Q36 9 36 12 Q36 9 39 9 Q36 9 36 6Z" fill="#F59E0B" />
                 </svg>
               </div>
             </div>
@@ -490,6 +653,14 @@ export default function PostCard({
                 <line x1="6" y1="20" x2="6" y2="14" />
               </svg>
               <span className="stat-text">{formatScore(totalVotes || displayScore)} votes</span>
+            </span>
+
+            {/* Comments stat */}
+            <span className="post-stat-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
+              <span className="stat-text">{formatScore(totalReacts || Math.max(1, Math.round((totalVotes || 1) * 0.45)))} comments</span>
             </span>
 
             {/* Views stat */}

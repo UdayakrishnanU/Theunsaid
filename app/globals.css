@@ -1000,29 +1000,52 @@ a.lnk{text-decoration:none;cursor:pointer}
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
-/* Pinned Post Card */
+/* Pinned Post Card with Luxurious Amber/Gold Gradient */
 .feed-post-card.card-pinned {
-  background: #FFFFFF;
+  background: linear-gradient(
+    135deg,
+    #FFFDF7 0%,
+    #FFFDF0 20%,
+    #FEFCE8 45%,
+    #FEF9C3 75%,
+    #FEF08A 100%
+  );
+  background-size: 260% 260%;
+  background-position: var(--scroll-pos, 0%) calc(var(--scroll-pos, 0%) * 0.7);
   border: 1.5px solid #FCD34D;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08), 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 20px -2px rgba(245, 158, 11, 0.16), 0 2px 6px -1px rgba(217, 119, 6, 0.08);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .feed-post-card.card-pinned:hover {
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.15), 0 2px 6px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(245, 158, 11, 0.28), 0 3px 10px rgba(217, 119, 6, 0.14);
+  border-color: #FBBF24;
 }
 
-/* Boosted Post Card default */
+/* Boosted Post Card with Radiant Multi-Tone Gradient */
 .feed-post-card.card-boosted {
-  background: #FFFFFF;
+  background: linear-gradient(
+    135deg,
+    #FFF5F7 0%,
+    #FFE4E8 25%,
+    #FFF0F3 55%,
+    #FECDD3 85%,
+    #FFF5F7 100%
+  );
+  background-size: 260% 260%;
+  background-position: var(--scroll-pos, 0%) calc(var(--scroll-pos, 0%) * 0.7);
   border: 1.5px solid #FDA4AF;
-  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.08), 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 20px -2px rgba(244, 63, 94, 0.16), 0 2px 6px -1px rgba(244, 63, 94, 0.08);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .feed-post-card.card-boosted:hover {
-  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.15), 0 2px 6px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(244, 63, 94, 0.28), 0 3px 10px rgba(244, 63, 94, 0.14);
 }
 
-/* Pinned & Boosted Dynamic Color Wave on Scroll (does not permanently color card) */
+/* Pinned & Boosted Dynamic Color Wave on Scroll */
 .feed-post-card.card-pinned::before,
 .feed-post-card.card-boosted::before {
   content: '';
@@ -1034,42 +1057,44 @@ a.lnk{text-decoration:none;cursor:pointer}
   z-index: 1;
 }
 
-/* Luminous gold wave that sweeps on scroll */
+/* Luminous gold wave that sweeps from one end to another on scroll */
 .feed-post-card.card-pinned::before {
   background: linear-gradient(
     115deg,
     transparent 0%,
-    transparent 42%,
-    rgba(245, 158, 11, 0.12) 47%,
-    rgba(251, 191, 36, 0.38) 50%,
-    rgba(254, 240, 138, 0.7) 51.5%,
-    rgba(251, 191, 36, 0.38) 53%,
-    rgba(245, 158, 11, 0.12) 56%,
-    transparent 61%,
+    transparent 35%,
+    rgba(245, 158, 11, 0.18) 44%,
+    rgba(251, 191, 36, 0.5) 49%,
+    rgba(255, 255, 255, 0.85) 51%,
+    rgba(251, 191, 36, 0.5) 53%,
+    rgba(245, 158, 11, 0.18) 58%,
+    transparent 67%,
     transparent 100%
   );
-  background-size: 320% 100%;
-  background-position: 120% 0;
-  animation: cardColorPassLoop 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  background-size: 300% 100%;
+  background-position: calc(150% - var(--scroll-pos, 0%) * 2.2) 0;
+  opacity: 0.95;
+  animation: cardColorPassLoop 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* Luminous shade wave that sweeps on scroll */
+/* Luminous shade wave that sweeps from one end to another on scroll */
 .feed-post-card.card-boosted::before {
   background: linear-gradient(
     115deg,
     transparent 0%,
-    transparent 42%,
-    color-mix(in srgb, var(--shade-accent, #F43F5E) 18%, transparent) 47%,
-    color-mix(in srgb, var(--shade-accent, #F43F5E) 45%, transparent) 50%,
-    rgba(255, 255, 255, 0.85) 51.5%,
-    color-mix(in srgb, var(--shade-accent, #F43F5E) 45%, transparent) 53%,
-    color-mix(in srgb, var(--shade-accent, #F43F5E) 18%, transparent) 56%,
-    transparent 61%,
+    transparent 35%,
+    color-mix(in srgb, var(--shade-accent, #F43F5E) 25%, transparent) 44%,
+    color-mix(in srgb, var(--shade-accent, #F43F5E) 60%, transparent) 49%,
+    rgba(255, 255, 255, 0.9) 51%,
+    color-mix(in srgb, var(--shade-accent, #F43F5E) 60%, transparent) 53%,
+    color-mix(in srgb, var(--shade-accent, #F43F5E) 25%, transparent) 58%,
+    transparent 67%,
     transparent 100%
   );
-  background-size: 320% 100%;
-  background-position: 120% 0;
-  animation: cardColorPassLoop 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  background-size: 300% 100%;
+  background-position: calc(150% - var(--scroll-pos, 0%) * 2.2) 0;
+  opacity: 0.95;
+  animation: cardColorPassLoop 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 /* Moving top border highlight line on scroll */
@@ -1080,7 +1105,7 @@ a.lnk{text-decoration:none;cursor:pointer}
   top: 0;
   left: 0;
   right: 0;
-  height: 2.5px;
+  height: 2.8px;
   border-radius: 18px 18px 0 0;
   pointer-events: none;
   z-index: 3;
@@ -1089,86 +1114,171 @@ a.lnk{text-decoration:none;cursor:pointer}
 .feed-post-card.card-pinned::after {
   background: linear-gradient(
     90deg,
-    transparent 0%,
-    transparent 40%,
-    rgba(245, 158, 11, 0.5) 48%,
-    #F59E0B 50%,
-    #FEF08A 51.5%,
-    #F59E0B 53%,
-    rgba(245, 158, 11, 0.5) 55%,
-    transparent 63%,
-    transparent 100%
+    rgba(245, 158, 11, 0.2) 0%,
+    rgba(245, 158, 11, 0.6) 35%,
+    #FDE047 50%,
+    #FFFFFF 52%,
+    #FDE047 54%,
+    rgba(245, 158, 11, 0.6) 65%,
+    rgba(245, 158, 11, 0.2) 100%
   );
-  background-size: 320% 100%;
-  background-position: 120% 0;
-  animation: cardColorPassLoop 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  background-size: 300% 100%;
+  background-position: calc(140% - var(--scroll-pos, 0%) * 2.0) 0;
+  animation: cardColorPassLoop 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 .feed-post-card.card-boosted::after {
   background: linear-gradient(
     90deg,
-    transparent 0%,
-    transparent 40%,
-    color-mix(in srgb, var(--shade-accent, #F43F5E) 50%, transparent) 48%,
-    var(--shade-accent, #F43F5E) 50%,
-    #FFFFFF 51.5%,
-    var(--shade-accent, #F43F5E) 53%,
-    color-mix(in srgb, var(--shade-accent, #F43F5E) 50%, transparent) 55%,
-    transparent 63%,
-    transparent 100%
+    color-mix(in srgb, var(--shade-accent, #F43F5E) 20%, transparent) 0%,
+    var(--shade-accent, #F43F5E) 35%,
+    #FFFFFF 50%,
+    #FFFFFF 52%,
+    var(--shade-accent, #F43F5E) 65%,
+    color-mix(in srgb, var(--shade-accent, #F43F5E) 20%, transparent) 100%
   );
-  background-size: 320% 100%;
-  background-position: 120% 0;
-  animation: cardColorPassLoop 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  background-size: 300% 100%;
+  background-position: calc(140% - var(--scroll-pos, 0%) * 2.0) 0;
+  animation: cardColorPassLoop 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes cardColorPassLoop {
-  0%, 20% {
-    background-position: 120% 0;
-    opacity: 0;
+  0%, 25% {
+    background-position: 150% 0;
+    opacity: 0.25;
   }
-  30% {
+  35% {
     opacity: 1;
   }
-  60% {
-    background-position: -30% 0;
+  65% {
+    background-position: -50% 0;
     opacity: 1;
   }
-  70%, 100% {
-    background-position: -30% 0;
-    opacity: 0;
+  75%, 100% {
+    background-position: -50% 0;
+    opacity: 0.25;
   }
 }
 
 @supports (animation-timeline: view()) {
-  .feed-post-card.card-pinned::before,
-  .feed-post-card.card-boosted::before,
-  .feed-post-card.card-pinned::after,
-  .feed-post-card.card-boosted::after {
-    animation: cardScrollColorPass linear both;
+  .feed-post-card.card-pinned {
+    animation: cardPinnedScrollMove linear both;
     animation-timeline: view();
-    animation-range: entry 15% exit 85%;
+    animation-range: entry 0% exit 100%;
+  }
+
+  .feed-post-card.card-boosted {
+    animation: cardBoostedScrollMove linear both;
+    animation-timeline: view();
+    animation-range: entry 0% exit 100%;
+  }
+
+  .feed-post-card.card-pinned::before {
+    animation: cardSheenGoldScroll linear both;
+    animation-timeline: view();
+    animation-range: entry 0% exit 100%;
+  }
+
+  .feed-post-card.card-boosted::before {
+    animation: cardSheenBoostedScroll linear both;
+    animation-timeline: view();
+    animation-range: entry 0% exit 100%;
+  }
+
+  .feed-post-card.card-pinned::after {
+    animation: cardBorderGoldScroll linear both;
+    animation-timeline: view();
+    animation-range: entry 0% exit 100%;
+  }
+
+  .feed-post-card.card-boosted::after {
+    animation: cardBorderBoostedScroll linear both;
+    animation-timeline: view();
+    animation-range: entry 0% exit 100%;
   }
 }
 
-@keyframes cardScrollColorPass {
+@keyframes cardPinnedScrollMove {
   0% {
-    background-position: 130% 0;
-    opacity: 0;
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 50% 60%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+@keyframes cardBoostedScrollMove {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 50% 60%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+@keyframes cardSheenGoldScroll {
+  0% {
+    background-position: 150% 0;
+    opacity: 0.2;
   }
   20% {
-    opacity: 1;
+    opacity: 0.95;
   }
   50% {
     background-position: 50% 0;
     opacity: 1;
   }
   80% {
-    opacity: 1;
+    opacity: 0.95;
   }
   100% {
-    background-position: -30% 0;
-    opacity: 0;
+    background-position: -50% 0;
+    opacity: 0.2;
+  }
+}
+
+@keyframes cardSheenBoostedScroll {
+  0% {
+    background-position: 150% 0;
+    opacity: 0.2;
+  }
+  20% {
+    opacity: 0.95;
+  }
+  50% {
+    background-position: 50% 0;
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.95;
+  }
+  100% {
+    background-position: -50% 0;
+    opacity: 0.2;
+  }
+}
+
+@keyframes cardBorderGoldScroll {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -50% 0;
+  }
+}
+
+@keyframes cardBorderBoostedScroll {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -50% 0;
   }
 }
 
@@ -1290,14 +1400,14 @@ a.lnk{text-decoration:none;cursor:pointer}
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: #FDE68A;
-  border: 1px solid #FCD34D;
-  color: #78350F;
-  font-size: 11.5px;
+  background: #FEF08A;
+  border: 1px solid #FDE047;
+  color: #713F12;
+  font-size: 12px;
   font-weight: 750;
-  padding: 3px 11px;
+  padding: 3.5px 12px;
   border-radius: 9999px;
-  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15);
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.12);
   user-select: none;
 }
 
@@ -1305,10 +1415,11 @@ a.lnk{text-decoration:none;cursor:pointer}
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  background: linear-gradient(135deg, #FF2E7E, #F43F5E);
   color: #FFFFFF;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 750;
-  padding: 3px 11px;
+  padding: 3.5px 12px;
   border-radius: 9999px;
   box-shadow: 0 2px 8px rgba(244, 63, 94, 0.3);
   user-select: none;
@@ -1455,17 +1566,79 @@ a.lnk{text-decoration:none;cursor:pointer}
   color: #0F172A;
 }
 
-/* Decorative Hero Artwork on Boosted & Pinned (Top-Right, No Glow Halo) */
+/* Card Watermarks (Pinned Gold Wave/Crown & Boosted Pink Wave) */
+.card-pinned-watermark,
+.card-boosted-watermark {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pinned-bg-svg,
+.boosted-bg-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Decorative Hero Artwork on Boosted & Pinned (Top-Right) */
 .post-art-wrap {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   flex-shrink: 0;
   user-select: none;
-  margin-left: 14px;
+  margin-left: 16px;
   align-self: flex-start;
+  margin-top: -2px;
+  position: relative;
+  z-index: 2;
+}
+
+.art-slogan {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  margin-right: 8px;
+  line-height: 1.25;
+}
+
+.slogan-pinned .slogan-line {
+  font-family: var(--font-newsreader), "Newsreader", "Georgia", serif;
+  font-style: italic;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #854D0E;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.slogan-pinned .slogan-swoop {
+  width: 78px;
+  height: 6px;
   margin-top: 1px;
-  padding: 2px;
+  opacity: 0.85;
+}
+
+.slogan-boosted .slogan-line {
+  font-family: var(--font-newsreader), "Newsreader", "Georgia", serif;
+  font-style: italic;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #BE123C;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.slogan-boosted .slogan-swoop {
+  width: 74px;
+  height: 6px;
+  margin-top: 1px;
+  opacity: 0.85;
 }
 
 .post-art-visual {
@@ -1475,9 +1648,9 @@ a.lnk{text-decoration:none;cursor:pointer}
 }
 
 .art-crown-svg {
-  width: 42px;
-  height: 42px;
-  filter: drop-shadow(0 2px 4px rgba(180, 83, 9, 0.22));
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 3px 6px rgba(180, 83, 9, 0.25));
   transform: rotate(-2deg);
   transition: transform 0.18s ease;
 }
@@ -1489,13 +1662,32 @@ a.lnk{text-decoration:none;cursor:pointer}
 .art-bolt-svg {
   width: 38px;
   height: 38px;
-  filter: drop-shadow(0 2px 4px rgba(225, 29, 72, 0.22));
-  transform: rotate(-4deg);
+  filter: drop-shadow(0 2px 6px rgba(225, 29, 72, 0.22));
+  transform: rotate(-3deg);
   transition: transform 0.18s ease;
 }
 
 .art-bolt-svg:hover {
-  transform: scale(1.08) rotate(-2deg);
+  transform: scale(1.08) rotate(0deg);
+}
+
+/* Vote Score Column Accents */
+.feed-post-card.card-pinned .vote-btn {
+  color: #D97706;
+}
+
+.feed-post-card.card-pinned .post-score-num {
+  color: #1E293B;
+  font-weight: 800;
+}
+
+.feed-post-card.card-boosted .vote-btn {
+  color: #F43F5E;
+}
+
+.feed-post-card.card-boosted .post-score-num {
+  color: #E11D48;
+  font-weight: 800;
 }
 
 /* Footer Stats & Share */
@@ -1506,6 +1698,8 @@ a.lnk{text-decoration:none;cursor:pointer}
   gap: 12px;
   margin-top: 10px;
   padding-top: 4px;
+  position: relative;
+  z-index: 2;
 }
 
 .post-stats-group {
@@ -1540,7 +1734,7 @@ a.lnk{text-decoration:none;cursor:pointer}
   gap: 6px;
   background: #F1F5F9;
   border: 1px solid #E2E8F0;
-  color: #334155;
+  color: #475569;
   font-size: 12.5px;
   font-weight: 650;
   padding: 6px 14px;
@@ -1556,23 +1750,25 @@ a.lnk{text-decoration:none;cursor:pointer}
 }
 
 .post-share-btn.share-pinned {
-  background: #FEF3C7;
-  border-color: #FDE68A;
-  color: #92400E;
+  background: #FEF08A;
+  border-color: #FDE047;
+  color: #854D0E;
 }
 
 .post-share-btn.share-pinned:hover {
-  background: #FDE68A;
+  background: #FDE047;
+  color: #713F12;
 }
 
 .post-share-btn.share-boosted {
-  background: #FFF1F4;
+  background: #FFE4E8;
   border-color: #FDA4AF;
   color: #BE123C;
 }
 
 .post-share-btn.share-boosted:hover {
-  background: #FFE4E6;
+  background: #FECDD3;
+  color: #9F1239;
 }
 
 /* Boosted Shades Grid inside PostModal */
