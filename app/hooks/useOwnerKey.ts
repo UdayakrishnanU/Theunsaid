@@ -20,8 +20,16 @@ export function useOwnerKey() {
     return c;
   };
 
-  const addCode = (c: string) => {
-    if (!codes.includes(c)) setCodes([...codes, c]);
+  // `promote: true` makes `c` the primary key (codes[0]) — used when restoring
+  // a key on a browser whose own default key never actually posted anything,
+  // so "Your key" at the top of /mine matches the key that owns your stuff
+  // instead of a blank auto-generated one nobody saved.
+  const addCode = (c: string, promote = false) => {
+    if (codes.includes(c)) {
+      if (promote && codes[0] !== c) setCodes([c, ...codes.filter((x) => x !== c)]);
+      return;
+    }
+    setCodes(promote ? [c, ...codes] : [...codes, c]);
   };
 
   return { key: key || null, codes, ensure, addCode };

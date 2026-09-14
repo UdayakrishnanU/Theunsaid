@@ -19,6 +19,13 @@ export default function MinePage() {
   const [copied, setCopied] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionErr, setActionErr] = useState<string | null>(null);
+  // Whether the CURRENT primary key (the one shown in the "Your key" box)
+  // actually owns any posts, as of its last real load. Starts true so we
+  // never promote a restored key before we've actually checked. Used to
+  // decide, in restore(), whether a freshly-restored key should become the
+  // new primary key instead of just being added as an extra one — see
+  // restore() below and useOwnerKey.addCode's `promote` flag.
+  const [primaryOwnsAny, setPrimaryOwnsAny] = useState(true);
 
   useEffect(() => {
     ensure();
@@ -38,8 +45,12 @@ export default function MinePage() {
         mine.recordOwner(p.id, key);
       });
       setPosts(posts);
+      if (!silent) setPrimaryOwnsAny(posts.length > 0);
     } catch {
-      if (!silent) setPosts([]);
+      if (!silent) {
+        setPosts([]);
+        setPrimaryOwnsAny(false);
+      }
     } finally {
       if (!silent) setLoading(false);
     }
@@ -90,7 +101,12 @@ export default function MinePage() {
         mine.addMine(p.id);
         mine.recordOwner(p.id, v);
       });
-      addCode(v);
+      // This browser's own key never posted anything — the key you're
+      // restoring is the one that actually matters, so make it primary
+      // instead of leaving "Your key" pointing at an empty one.
+      const promote = !primaryOwnsAny && hits.length > 0;
+      addCode(v, promote);
+      if (promote) setPrimaryOwnsAny(true);
       setClaimIn("");
       setPosts((cur) => [...hits, ...cur.filter((p) => !hits.some((h) => h.id === p.id))]);
     } catch (e) {
