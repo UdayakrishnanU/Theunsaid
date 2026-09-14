@@ -39,5 +39,14 @@ export function useOwnerKey() {
     setCodes(promote ? [c, ...current] : [...current, c]);
   };
 
-  return { key: key || null, codes, ensure, addCode };
+  // codesRef alongside codes: a caller reading inside its own
+  // mount-time effect (e.g. /mine's post-payment confirmation) hits the
+  // same pre-hydration-closure trap ensure() itself used to hit -- codes
+  // is still the pre-hydration [] there even after useLocalState's own
+  // hydration effect has already run and called setCodes, because that
+  // effect (registered earlier, since useOwnerKey() is called first)
+  // only *schedules* a re-render; it doesn't retroactively change what a
+  // same-commit sibling effect's closure already captured. codesRef.current
+  // has no such delay -- read it instead of `codes` from inside an effect.
+  return { key: key || null, codes, ensure, addCode, codesRef };
 }

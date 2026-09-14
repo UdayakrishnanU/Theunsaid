@@ -44,7 +44,7 @@ function mergeEngaged(newer: EngagedPost[], existing: EngagedPost[]): EngagedPos
 
 export default function MinePage() {
   const router = useRouter();
-  const { key, codes, ensure, addCode } = useOwnerKey();
+  const { key, codes, ensure, addCode, codesRef } = useOwnerKey();
   const mine = useMine();
   const [posts, setPosts] = useState<OwnedPost[]>([]);
   const [engaged, setEngaged] = useState<EngagedPost[]>([]);
@@ -124,14 +124,19 @@ export default function MinePage() {
   // (Before this, a fresh page load re-fetched only `codes[0]`, so anything
   // that came from an "also holding" key quietly vanished on reload.)
   async function reload(silent = false): Promise<{ posts: OwnedPost[]; engaged: EngagedPost[] } | undefined> {
-    if (!codes.length) {
+    // Read codesRef, not `codes` -- a caller inside its own mount-time
+    // effect (the cf_order_id payment-confirmation effect below) can still
+    // be holding the pre-hydration `codes` closure even after codesRef has
+    // already been updated with the real, persisted keys. See useOwnerKey.
+    const currentCodes = codesRef.current.length ? codesRef.current : codes;
+    if (!currentCodes.length) {
       setLoading(false);
       return { posts: [], engaged: [] };
     }
     if (!silent) setLoading(true);
     try {
       const results = await Promise.all(
-        codes.map((c) =>
+        currentCodes.map((c) =>
           api.claim(c).then(
             (r) => ({ code: c, posts: r.posts, engaged: r.engaged }),
             () => ({ code: c, posts: [] as OwnedPost[], engaged: [] as EngagedPost[] })
