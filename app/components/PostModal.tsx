@@ -57,6 +57,25 @@ export default function PostModal({
   // so the server can tell it's the same draft instead of creating a second
   // post and a second Cashfree order for one intended submission.
   const [idemKey, setIdemKey] = useState<string>(() => (typeof crypto !== "undefined" ? crypto.randomUUID() : Math.random().toString(36).slice(2)));
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [skipPayment, setSkipPayment] = useState(false);
+
+  // "Test post, no payment" is a debug affordance, not something a real
+  // visitor should ever see or be able to trigger — the server re-checks the
+  // admin session cookie itself before honoring it either way (see
+  // app/api/posts/route.ts), this is purely to hide the checkbox.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/whoami")
+      .then((r) => (r.ok ? r.json() : { isAdmin: false }))
+      .then((j) => {
+        if (!cancelled) setIsAdminUser(!!j.isAdmin);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Local estimate for the very first paint, refined immediately below by the
   // real server-computed price (lib/pinPricing.ts) — never the other way
@@ -136,13 +155,19 @@ export default function PostModal({
         ownerKey,
         turnstileToken: turnstileToken ?? undefined,
         idempotencyKey: idemKey,
+        devSkipPayment: isAdminUser && skipPayment ? true : undefined,
       });
       if (res.careFlag) {
         setCareFlag(true);
         setPhase("form");
         return;
       }
-      if (!res.cashfree) {
+      if (res.dev) {
+        // Admin test post — already live, no Cashfree order was ever opened.
+        onPosted({ postId: res.postId, ownerKey: res.ownerKey, type });
+        return;
+      }
+      if (!res.cashfree || !res.order) {
         setWarning("Payments aren't available on this deployment right now. Your draft was saved and won't be charged — try again in a few minutes.");
         setPhase("form");
         return;
@@ -436,13 +461,19 @@ export default function PostModal({
         <p className="ph">
           Pay with <strong>{currency.rail}</strong>.
         </p>
+        {isAdminUser && (
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--dim)", marginTop: 4 }}>
+            <input type="checkbox" checked={skipPayment} onChange={(e) => setSkipPayment(e.target.checked)} />
+            Test post — skip payment (admin only, not charged)
+          </label>
+        )}
         <TurnstileWidget onToken={setTurnstileToken} />
         <div className="ma">
           <button className="btn gh" onClick={onClose} disabled={phase !== "form"}>
             Cancel
           </button>
           <button className="btn" onClick={submit} disabled={phase !== "form"}>
-            {phase === "form" ? "Pay and post" : phase === "paying" ? "Opening payment…" : "Confirming payment…"}
+            {phase === "form" ? (isAdminUser && skipPayment ? "Post (no charge)" : "Pay and post") : phase === "paying" ? "Opening payment…" : "Confirming payment…"}
           </button>
         </div>
       </div>
