@@ -154,7 +154,7 @@ export const BGS: [string, string][] = [
 ];
 
 export const SORTS: [string, string][] = [
-  ["trending", "Trending"], ["new", "Just posted"], ["needy", "Needs your votes"], ["boosted", "Boosted"],
+  ["trending", "Trending"], ["new", "Last 24 hours"], ["needy", "Needs your votes"], ["boosted", "Boosted"],
 ];
 
 const H = 36e5;
@@ -177,7 +177,10 @@ export const rsum = (p: Post) => Object.values(p.reactions || {}).reduce((a, b) 
 export const vsum = (p: Post) => (p.va || 0) + (p.vb || 0);
 export const eng = (p: Post) => rsum(p) + vsum(p);
 export const heat = (p: Post) => eng(p) / Math.pow(Math.max(1, (Date.now() - p.at) / H), 0.62);
-export const isFresh = (p: Post) => Date.now() - p.at < 2 * H;
+// "Last 24 hours" tab / trending float — widened from a 2h window so it
+// reflects actual recent activity instead of going empty within minutes on
+// a quiet board.
+export const isFresh = (p: Post) => Date.now() - p.at < 24 * H;
 export const needsVotes = (votedIds: Set<string>) => (p: Post) =>
   !votedIds.has(p.id) && (p.type === "dilemma" ? vsum(p) < 400 : eng(p) < 40);
 

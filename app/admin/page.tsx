@@ -38,6 +38,8 @@ export default function AdminPage() {
   const [recOwnerKey, setRecOwnerKey] = useState("");
   const [recMsg, setRecMsg] = useState<string | null>(null);
   const [recBusy, setRecBusy] = useState(false);
+  const [purgeMsg, setPurgeMsg] = useState<string | null>(null);
+  const [purgeBusy, setPurgeBusy] = useState(false);
 
   async function load() {
     const [r1, r2] = await Promise.all([fetch("/api/admin/reports"), fetch("/api/admin/summary")]);
@@ -92,6 +94,25 @@ export default function AdminPage() {
       setRecMsg(e instanceof Error ? e.message : "Could not reassign.");
     } finally {
       setRecBusy(false);
+    }
+  }
+
+  async function purgeSeedContent() {
+    if (!window.confirm("Remove all seeded launch content from the board? This hides every post from the original 469-post seed batch (not any real visitor post). Reversible via direct DB access only.")) {
+      return;
+    }
+    setPurgeMsg(null);
+    setPurgeBusy(true);
+    try {
+      const res = await fetch("/api/admin/posts/purge-seed", { method: "POST" });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Could not remove seed content.");
+      setPurgeMsg(`Done — hid ${d.hidden} of ${d.total} seeded posts.`);
+      load();
+    } catch (e) {
+      setPurgeMsg(e instanceof Error ? e.message : "Could not remove seed content.");
+    } finally {
+      setPurgeBusy(false);
     }
   }
 
@@ -165,6 +186,18 @@ export default function AdminPage() {
           </button>
         </div>
         {recMsg && <div style={{ marginTop: 8, fontSize: 13 }}>{recMsg}</div>}
+      </div>
+
+      <div className="admin-card">
+        <h3 style={{ marginTop: 0 }}>Seeded launch content</h3>
+        <p style={{ fontSize: 13, marginTop: 0 }}>
+          Hides every post from the original launch seed batch (scripts/inject_seed.py) from the board — matched by
+          exact post id, so this can never touch a real visitor&apos;s post.
+        </p>
+        <button className="btn gh" style={{ color: "#B91C1C" }} onClick={purgeSeedContent} disabled={purgeBusy}>
+          {purgeBusy ? "Removing…" : "Remove seeded content from board"}
+        </button>
+        {purgeMsg && <div style={{ marginTop: 8, fontSize: 13 }}>{purgeMsg}</div>}
       </div>
 
       <div className="admin-card">

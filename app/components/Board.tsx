@@ -591,7 +591,7 @@ export default function Board() {
                 ? "Barely any votes yet. These are the ones that need you."
                 : sort === "boosted"
                 ? "Posts paid for extra visibility, shown in place — not a separate line."
-                : "Rising fastest right now — and anything posted in the last two hours rides on top."}
+                : "Rising fastest right now — and anything posted in the last 24 hours rides on top."}
             </p>
             <div className="feed">
               {loading ? (
@@ -627,7 +627,7 @@ export default function Board() {
                   <p>
                     {sort !== "trending" && restAll.length
                       ? sort === "new"
-                        ? "Nothing has been posted in the last two hours."
+                        ? "Nothing has been posted in the last 24 hours."
                         : sort === "boosted"
                         ? "Nothing is boosted right now."
                         : "Every post here already has plenty of votes."
