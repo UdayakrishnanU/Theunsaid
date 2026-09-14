@@ -389,7 +389,7 @@ export default function PostCard({
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M2 4l3 12h14l3-12-5 6-5-6-5 6-5-6z" />
                   </svg>
-                  Pinned · {post.paid ? rupee(post.paid, post.currency || "INR") : "₹700"}
+                  Pinned
                 </span>
                 <span className="post-pinned-price">
                   {post.paid ? rupee(post.paid, post.currency || "INR") : "₹700"}
@@ -397,19 +397,24 @@ export default function PostCard({
               </div>
             )}
 
-            {/* Boosted Badge */}
+            {/* Boosted Badge & Price */}
             {isBoosted && (
-              <span
-                className="post-badge-boosted"
-                style={{
-                  background: shade?.badgeBg || "linear-gradient(135deg, #FF2E7E, #F43F5E)",
-                }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg>
-                Boosted
-              </span>
+              <div className="post-boosted-badge-group">
+                <span
+                  className="post-badge-boosted"
+                  style={{
+                    background: shade?.badgeBg || "linear-gradient(135deg, #FF2E7E, #F43F5E)",
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                  Boosted
+                </span>
+                <span className="post-boosted-price">
+                  {post.paid ? rupee(post.paid, post.currency || "INR") : "₹299"}
+                </span>
+              </div>
             )}
 
             {/* Category Pill */}

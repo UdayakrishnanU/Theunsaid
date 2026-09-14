@@ -33,7 +33,7 @@ import DetailModal from "./DetailModal";
 import VoteModal from "./VoteModal";
 import ClosestCallCard from "./ClosestCallCard";
 import ShareStudioModal from "./ShareStudioModal";
-import type { CardVariant, ShareCardData } from "@/app/lib-client/shareCardCanvas";
+import type { CardFormat, CardVariant, ShareCardData } from "@/app/lib-client/shareCardCanvas";
 
 const PER = 20;
 
@@ -76,6 +76,7 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
   const [shareData, setShareData] = useState<ShareCardData | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareVariant, setShareVariant] = useState<CardVariant>("curiosity");
+  const [shareFormat, setShareFormat] = useState<CardFormat>("og");
 
   // A single choke-point so a double-tap or an impatient repeat click on a
   // vote/react/report control can't fire the request twice while the first
@@ -310,7 +311,7 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
       showToast("That report didn't go through — try again.");
     }
   }
-  function openShareStudio(p: Post, initialVar: CardVariant = "curiosity") {
+  function openShareStudio(p: Post, initialVar: CardVariant = "curiosity", initialFmt: CardFormat = "og") {
     const t = vsum(p);
     const pa = t ? Math.round((p.va / t) * 100) : 50;
     const voted = mine.votedSide(p.id);
@@ -326,6 +327,7 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
       votedSide: voted,
     });
     setShareVariant(voted ? "personal" : initialVar);
+    setShareFormat(initialFmt);
     setShareOpen(true);
   }
 
@@ -342,10 +344,11 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
     // Auto-open Share Studio modal with "curiosity" (Ask Friends - No Spoilers) in banner format!
     const existing = all.find((p) => p.id === current.postId);
     if (existing) {
-      openShareStudio(existing, "curiosity");
+      openShareStudio(existing, "curiosity", "og");
     } else {
       setShareData(current.postData);
       setShareVariant("curiosity");
+      setShareFormat("og");
       setShareOpen(true);
     }
   }
@@ -775,6 +778,7 @@ export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) 
         open={shareOpen}
         data={shareData}
         initialVariant={shareVariant}
+        initialFormat={shareFormat}
         onClose={() => setShareOpen(false)}
       />
 

@@ -14,6 +14,7 @@ interface ShareStudioModalProps {
   open: boolean;
   data: ShareCardData | null;
   initialVariant?: CardVariant;
+  initialFormat?: CardFormat;
   onClose: () => void;
 }
 
@@ -55,10 +56,11 @@ export default function ShareStudioModal({
   open,
   data,
   initialVariant = "curiosity",
+  initialFormat = "og",
   onClose,
 }: ShareStudioModalProps) {
   const [variant, setVariant] = useState<CardVariant>(initialVariant);
-  const [format, setFormat] = useState<CardFormat>("og");
+  const [format, setFormat] = useState<CardFormat>(initialFormat);
   const [status, setStatus] = useState<string>("");
   const [isAdminUser, setIsAdminUser] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -67,9 +69,10 @@ export default function ShareStudioModal({
     if (open) {
       const needsFallback = initialVariant === "outcome" && !(data?.outcome && data.outcome.trim().length > 0);
       setVariant(needsFallback ? "curiosity" : initialVariant);
+      setFormat(initialFormat || "og");
       setStatus("");
     }
-  }, [open, initialVariant, data]);
+  }, [open, initialVariant, initialFormat, data]);
 
   // "Developer options" (copy raw caption text) is a debug affordance, not
   // something every visitor should see — only show it to whoever is signed

@@ -92,7 +92,12 @@ export default function DetailModal({
           <span className="cat">{post.category}</span>
           {onShelf && (
             <span className="tag" style={{ background: "#F59E0B" }}>
-              Pinned · {rupee(post.paid || 0, currency)}
+              Pinned · {post.paid ? rupee(post.paid, currency) : "₹700"}
+            </span>
+          )}
+          {post.tier === "glow" && !onShelf && (
+            <span className="tag" style={{ background: "#F43F5E" }}>
+              Boosted · {post.paid ? rupee(post.paid, currency) : "₹299"}
             </span>
           )}
           {isMine && (
