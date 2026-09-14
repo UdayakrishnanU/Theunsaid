@@ -14,43 +14,19 @@ import type { Post } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-function rowToPost(r: Record<string, unknown>): Post {
-  return {
-    id: r.id as string,
-    type: r.type as Post["type"],
-    category: r.category as Post["category"],
-    text: r.text as string,
-    oa: (r.option_a as string) ?? null,
-    ob: (r.option_b as string) ?? null,
-    bg: (r.bg as string) ?? "plain",
-    tier: r.tier as Post["tier"],
-    currency: r.currency as CurrencyCode,
-    paid: (r.paid_base as number) ?? null,
-    until: r.until ? new Date(r.until as string).getTime() : null,
-    va: (r.va as number) ?? 0,
-    vb: (r.vb as number) ?? 0,
-    reactions: (r.reactions as Record<string, number>) ?? {},
-    reports: (r.reports as number) ?? 0,
-    hidden: !!r.hidden,
-    outcome: (r.outcome as Post["outcome"]) ?? null,
-    at: new Date(r.created_at as string).getTime(),
-  };
-}
+import { getLivePosts, rowToPost } from "@/lib/posts";
 
-// GET /api/posts — the live board. Mirrors the original's "load everything,
-// filter/sort on the client" approach; fine at this scale, revisit with
-// server-side pagination once volume is real.
+// GET /api/posts — the live board.
 export async function GET() {
-  const sb = supabaseAdmin();
-  const { data, error } = await sb
-    .from("posts")
-    .select("*")
-    .eq("status", "live")
-    .eq("hidden", false)
-    .order("created_at", { ascending: false })
-    .limit(1000);
-  if (error) return NextResponse.json({ error: friendlyError("posts.get", error) }, { status: 500 });
-  return NextResponse.json({ posts: (data ?? []).map(rowToPost) });
+  const posts = await getLivePosts();
+  return NextResponse.json(
+    { posts },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+      },
+    }
+  );
 }
 
 const CATEGORIES = ["relationships", "work", "money", "family", "random"] as const;

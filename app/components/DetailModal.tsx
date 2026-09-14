@@ -101,7 +101,7 @@ export default function DetailModal({
             </span>
           )}
           <span className="sep">·</span>
-          <span className="t">{ago(post.at)}</span>
+          <span className="t" suppressHydrationWarning>{ago(post.at)}</span>
         </div>
         <p className="txt" style={{ fontSize: 24, maxWidth: "none" }}>
           {post.type === "confession" ? `“${post.text}”` : post.text}
@@ -130,7 +130,7 @@ export default function DetailModal({
             <div className="oh">What they actually did</div>
             <div className="ob">{post.outcome.choice === "a" ? post.oa : post.outcome.choice === "b" ? post.ob : "something else"}</div>
             {post.outcome.note && <p className="on">“{post.outcome.note}”</p>}
-            <div className="om">
+            <div className="om" suppressHydrationWarning>
               {nf(t)} people voted · {pa}% said {post.oa} · resolved {ago(post.outcome.at)}
             </div>
           </div>

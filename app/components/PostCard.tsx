@@ -375,7 +375,9 @@ export default function PostCard({
             </div>
 
             <span className="post-meta-dot">•</span>
-            <span className="post-time-ago">{ago(post.at)}</span>
+            <span className="post-time-ago" suppressHydrationWarning>
+              {ago(post.at)}
+            </span>
           </div>
 
           <div className="post-header-right">

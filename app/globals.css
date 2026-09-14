@@ -2,7 +2,7 @@
   --paper:#FAF9F5;--surface:#FFFFFF;--card:#FFFFFF;--ink:#141712;
   --dim:#4B5245;--faint:#798273;--rule:#E5E9E0;--rule-strong:#CDD4C6;
   --lime:#B8FF4F;--lime-hover:#A6EB3D;--lime-ink:#2D4E0A;--coral:#FF705E;--blue:#5E81F4;--yellow:#FFD56A;
-  --serif:'Newsreader',Georgia,serif;--sans:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --serif:var(--font-newsreader),'Newsreader',Georgia,serif;--sans:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
   --shadow-card:0 16px 44px rgba(28,36,22,.06);
   --shadow-elevated:0 24px 64px rgba(28,36,22,.10);
   --radius-xl:28px;--radius-lg:20px;--radius-md:14px;
@@ -783,7 +783,7 @@ a.lnk{text-decoration:none;cursor:pointer}
 }
 
 .script-word {
-  font-family: 'Caveat', cursive, sans-serif;
+  font-family: var(--font-caveat), 'Caveat', cursive, sans-serif;
   font-size: 21px;
   font-weight: 700;
   color: #B28B86;

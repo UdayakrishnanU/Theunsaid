@@ -42,13 +42,13 @@ function dayKey(): string {
   return `unsaid_voted_${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
-export default function Board() {
+export default function Board({ initialPosts = [] }: { initialPosts?: Post[] }) {
   const { code: curCode, def: curDef } = useCurrency();
   const mine = useMine();
   const { key: ownerKey, ensure } = useOwnerKey();
 
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<Post[]>(initialPosts);
+  const [loading, setLoading] = useState(initialPosts.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   const [cat, setCat] = useState("all");
@@ -115,10 +115,12 @@ export default function Board() {
   }, []);
 
   useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, 15000);
+    if (initialPosts.length === 0) {
+      refresh();
+    }
+    const id = setInterval(refresh, 20000);
     return () => clearInterval(id);
-  }, [refresh]);
+  }, [refresh, initialPosts.length]);
 
   useEffect(() => {
     try {
@@ -578,7 +580,7 @@ export default function Board() {
                 <span className="sdot" style={{ background: "var(--ink)" }} />
                 The board
               </h2>
-              <span className="m">
+              <span className="m" suppressHydrationWarning>
                 {nf(rest.length)} {rest.length === 1 ? "post" : "posts"}
                 {win === "today" && !usingRecentHighlights ? " today" : ""}
               </span>
