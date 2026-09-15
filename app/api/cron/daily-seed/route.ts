@@ -118,9 +118,16 @@ export async function GET(req: NextRequest) {
 
   // Spread each day's batch across the trailing ~20h ending now, so posts
   // look like they trickled in over the day rather than landing all at once.
+  // Exception: the marker row (dayRows[0], the id findSeedProgress checks)
+  // always gets the real, un-backdated "now" -- its created_at is what the
+  // MIN_GAP_MS pacing check above reads back as prevSeededAt next time this
+  // runs, and if it were randomized like the rest, a lucky roll close to the
+  // full 20h could make the *next* day look overdue instantly, letting a
+  // retry or burst of admin calls seed two days back to back. One row out of
+  // 350 not being backdated is imperceptible in the feed.
   const now = Date.now();
-  const rows = dayRows.map((r) => {
-    const createdAt = new Date(now - Math.random() * 20 * 3600 * 1000).toISOString();
+  const rows = dayRows.map((r, i) => {
+    const createdAt = new Date(i === 0 ? now : now - Math.random() * 20 * 3600 * 1000).toISOString();
     const until = r.tier !== "std" ? new Date(new Date(createdAt).getTime() + DAY_MS).toISOString() : null;
     return { ...r, created_at: createdAt, paid_at: createdAt, until };
   });
