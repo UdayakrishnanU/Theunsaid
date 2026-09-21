@@ -664,7 +664,7 @@ export default function PostCard({
                 <line x1="12" y1="20" x2="12" y2="4" />
                 <line x1="6" y1="20" x2="6" y2="14" />
               </svg>
-              <span className="stat-text">{formatScore(totalVotes || displayScore)} votes</span>
+                            <span className="stat-text">{formatScore(totalVotes || displayScore)} {post.type === "dilemma" ? "votes" : "reactions"}</span>
             </span>
 
             {/* Views stat */}
