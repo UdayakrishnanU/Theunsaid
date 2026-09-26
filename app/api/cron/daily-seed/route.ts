@@ -124,16 +124,55 @@ export async function GET(req: NextRequest) {
 
   let recycled = 0;
   for (let i = 0; i < updates.length; i += CHUNK) {
+    const rawChunk = batch.slice(i, i + CHUNK);
     const chunk = updates.slice(i, i + CHUNK);
-    // onConflict without ignoreDuplicates: these ids already exist, so this
-    // is an UPDATE of just the listed columns for each matching row, not an
-    // insert -- the same chunked-upsert pattern the old injection used, just
-    // pointed at refreshing existing rows instead of creating new ones.
-    const { data, error } = await sb.from("posts").upsert(chunk, { onConflict: "id" }).select("id");
-    if (error) {
-      return NextResponse.json({ error: error.message, recycledSoFar: recycled }, { status: 500 });
+    const ids = chunk.map((u) => u.id);
+
+    // These ids are supposed to already exist (seededDayCount only counts a
+    // day in if its marker row is present), but that check doesn't confirm
+    // every row of the day is still there -- a handful can be missing (never
+    // persisted, or removed some other way). Upserting only the partial
+    // update columns for a ghost id falls back to an INSERT with just those
+    // columns, which blows up on every NOT NULL column we didn't list
+    // (type, category, text, ...). Check existence first so the
+    // partial-column path only ever runs for rows genuinely already there,
+    // and re-insert any ghosts from their full seed data instead.
+    const { data: existingRows, error: existErr } = await sb.from("posts").select("id").in("id", ids);
+    if (existErr) {
+      return NextResponse.json({ error: existErr.message, recycledSoFar: recycled }, { status: 500 });
     }
-    recycled += data?.length ?? 0;
+    const existingIds = new Set((existingRows ?? []).map((r) => r.id as string));
+
+    const toUpdate: typeof chunk = [];
+    const toReinsert: (SeedRow & (typeof chunk)[number])[] = [];
+    for (let j = 0; j < chunk.length; j++) {
+      if (existingIds.has(chunk[j].id)) {
+        toUpdate.push(chunk[j]);
+      } else {
+        toReinsert.push({ ...rawChunk[j], ...chunk[j] });
+      }
+    }
+
+    if (toUpdate.length > 0) {
+      // onConflict without ignoreDuplicates: these ids are confirmed to
+      // already exist, so this is an UPDATE of just the listed columns for
+      // each matching row, never an insert.
+      const { data, error } = await sb.from("posts").upsert(toUpdate, { onConflict: "id" }).select("id");
+      if (error) {
+        return NextResponse.json({ error: error.message, recycledSoFar: recycled }, { status: 500 });
+      }
+      recycled += data?.length ?? 0;
+    }
+
+    if (toReinsert.length > 0) {
+      // Ghost ids: insert the full seed row (every NOT NULL column
+      // populated) with the same recycled overrides applied on top.
+      const { data, error } = await sb.from("posts").upsert(toReinsert, { onConflict: "id" }).select("id");
+      if (error) {
+        return NextResponse.json({ error: error.message, recycledSoFar: recycled }, { status: 500 });
+      }
+      recycled += data?.length ?? 0;
+    }
   }
 
   return NextResponse.json({ ok: true, poolSize: total, cycleStart, recycled });
