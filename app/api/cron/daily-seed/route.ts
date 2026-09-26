@@ -18,8 +18,10 @@ export const runtime = "nodejs";
 // already-seeded posts and gives them a fresh created_at (spread over the
 // trailing ~20h, the same way the old injection did) with va/vb/reactions
 // reset to zero, so lib/engagementDrip.ts's ramp restarts and they read as
-// freshly posted again. No new rows, no new ids, no new ISR paths -- this
-// is an UPDATE to an id that is already cached, never an INSERT.
+// freshly posted again. No new ids and no new ISR paths -- every id in the
+// pool was already seeded and cached at some point. (In practice this is
+// almost always an UPDATE of an existing row; see the note above `updates`
+// for the rare case where an id in the pool isn't actually in the table.)
 //
 // Which batch gets recycled cycles deterministically through the whole pool
 // of already-seeded posts, RECYCLE_BATCH at a time, wrapping back to the
@@ -116,63 +118,31 @@ export async function GET(req: NextRequest) {
   const batch = cycleWindow(total, cycleStart, RECYCLE_BATCH).map((i) => pool[i]);
 
   const now = Date.now();
+  // Full seed row merged with the recycled overrides -- not just the
+  // overridden columns. A partial-column payload only works when every id
+  // in the chunk already exists: Postgres still requires the *whole*
+  // proposed row to satisfy NOT NULL constraints during the speculative
+  // insert side of ON CONFLICT, evaluated per-row before it even checks for
+  // a conflict, so a single id in the chunk that isn't actually in the
+  // table yet (seededDayCount only checks each day's marker row, not every
+  // row in it) fails the entire batched upsert with a NOT NULL error and
+  // recycles nothing. Sending every column means the row satisfies NOT
+  // NULL whether Postgres resolves this as an insert or an update, so a
+  // ghost id can never take the rest of the chunk down with it.
   const updates = batch.map((r) => {
     const createdAt = new Date(now - Math.random() * 20 * 3600 * 1000).toISOString();
     const until = r.tier !== "std" ? new Date(new Date(createdAt).getTime() + DAY_MS).toISOString() : null;
-    return { id: r.id, created_at: createdAt, paid_at: createdAt, until, va: 0, vb: 0, reactions: {} };
+    return { ...r, created_at: createdAt, paid_at: createdAt, until, va: 0, vb: 0, reactions: {} };
   });
 
   let recycled = 0;
   for (let i = 0; i < updates.length; i += CHUNK) {
-    const rawChunk = batch.slice(i, i + CHUNK);
     const chunk = updates.slice(i, i + CHUNK);
-    const ids = chunk.map((u) => u.id);
-
-    // These ids are supposed to already exist (seededDayCount only counts a
-    // day in if its marker row is present), but that check doesn't confirm
-    // every row of the day is still there -- a handful can be missing (never
-    // persisted, or removed some other way). Upserting only the partial
-    // update columns for a ghost id falls back to an INSERT with just those
-    // columns, which blows up on every NOT NULL column we didn't list
-    // (type, category, text, ...). Check existence first so the
-    // partial-column path only ever runs for rows genuinely already there,
-    // and re-insert any ghosts from their full seed data instead.
-    const { data: existingRows, error: existErr } = await sb.from("posts").select("id").in("id", ids);
-    if (existErr) {
-      return NextResponse.json({ error: existErr.message, recycledSoFar: recycled }, { status: 500 });
+    const { data, error } = await sb.from("posts").upsert(chunk, { onConflict: "id" }).select("id");
+    if (error) {
+      return NextResponse.json({ error: error.message, recycledSoFar: recycled }, { status: 500 });
     }
-    const existingIds = new Set((existingRows ?? []).map((r) => r.id as string));
-
-    const toUpdate: typeof chunk = [];
-    const toReinsert: (SeedRow & (typeof chunk)[number])[] = [];
-    for (let j = 0; j < chunk.length; j++) {
-      if (existingIds.has(chunk[j].id)) {
-        toUpdate.push(chunk[j]);
-      } else {
-        toReinsert.push({ ...rawChunk[j], ...chunk[j] });
-      }
-    }
-
-    if (toUpdate.length > 0) {
-      // onConflict without ignoreDuplicates: these ids are confirmed to
-      // already exist, so this is an UPDATE of just the listed columns for
-      // each matching row, never an insert.
-      const { data, error } = await sb.from("posts").upsert(toUpdate, { onConflict: "id" }).select("id");
-      if (error) {
-        return NextResponse.json({ error: error.message, recycledSoFar: recycled }, { status: 500 });
-      }
-      recycled += data?.length ?? 0;
-    }
-
-    if (toReinsert.length > 0) {
-      // Ghost ids: insert the full seed row (every NOT NULL column
-      // populated) with the same recycled overrides applied on top.
-      const { data, error } = await sb.from("posts").upsert(toReinsert, { onConflict: "id" }).select("id");
-      if (error) {
-        return NextResponse.json({ error: error.message, recycledSoFar: recycled }, { status: 500 });
-      }
-      recycled += data?.length ?? 0;
-    }
+    recycled += data?.length ?? 0;
   }
 
   return NextResponse.json({ ok: true, poolSize: total, cycleStart, recycled });
