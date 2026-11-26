@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hashOwnerKey } from "@/lib/ownerKey";
-import { createOrder, cashfreeMode } from "@/lib/cashfree";
+import { createOrder, cashfreeMode, cashfreeRejection } from "@/lib/cashfree";
 import { friendlyError } from "@/lib/apiError";
 
 export const runtime = "nodejs";
@@ -49,6 +49,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       cashfree: { paymentSessionId: order.paymentSessionId, mode: cashfreeMode() },
     });
   } catch (e) {
+    const rejection = cashfreeRejection(e);
+    if (rejection) {
+      friendlyError("resume-payment.createOrder", e); // still log the raw error
+      return NextResponse.json({ error: rejection }, { status: 400 });
+    }
     return NextResponse.json(
       { error: friendlyError("resume-payment.createOrder", e, "Payments are temporarily unavailable — try again shortly.") },
       { status: 502 }
