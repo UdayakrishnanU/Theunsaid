@@ -85,3 +85,27 @@ export const priceBase = (tier: Tier, code: CurrencyCode) =>
 
 export const BID_STEP = 100; // in base units (same scale as toBase)
 export const minBidBase = (code: CurrencyCode) => Math.round(CUR[code].pin * CUR[code].inr * 100);
+
+// Currencies Cashfree will actually open an order in for this merchant
+// account. Nov 2026: only INR — every USD/GBP/etc order was rejected by
+// Cashfree with "order Currency not enabled for this merchant account",
+// which surfaced to visitors as the generic "Payments are temporarily
+// unavailable" error. Prices are shown and charged in a payable currency
+// only; set NEXT_PUBLIC_PAYABLE_CURRENCIES (e.g. "INR,USD") once Cashfree
+// enables more currencies on the account.
+const PAYABLE_RAW = (process.env.NEXT_PUBLIC_PAYABLE_CURRENCIES || "INR")
+  .split(",")
+  .map((s) => s.trim().toUpperCase())
+  .filter((c): c is CurrencyCode => c in CUR);
+export const PAYABLE_CURRENCIES: CurrencyCode[] = PAYABLE_RAW.length ? PAYABLE_RAW : ["INR"];
+export const isPayable = (c: CurrencyCode) => PAYABLE_CURRENCIES.includes(c);
+export const fallbackPayable = (): CurrencyCode => (isPayable("INR") ? "INR" : PAYABLE_CURRENCIES[0]);
+
+// Cashfree also rejects any single order above the account's max order
+// amount ("order amount cannot be greater than the max order amount set
+// with Cashfree"). Measured on the live account 2026-11-26: ₹50,000 is
+// accepted, ₹50,001 is rejected. Bids are capped here so the customer gets
+// a clear message up front instead. Raise NEXT_PUBLIC_MAX_ORDER_INR if
+// Cashfree raises the account limit.
+export const MAX_ORDER_INR = Number(process.env.NEXT_PUBLIC_MAX_ORDER_INR) || 50000;
+export const maxOrderBase = MAX_ORDER_INR * 100; // same `base` scale as toBase()

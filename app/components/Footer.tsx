@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CUR, CurrencyCode } from "@/lib/currency";
+import { CUR, CurrencyCode, PAYABLE_CURRENCIES } from "@/lib/currency";
 import { useCurrency } from "@/app/hooks/useCurrency";
 import { nf } from "@/lib/board-helpers";
 
@@ -31,9 +31,9 @@ export default function Footer() {
       <Link href="/privacy">Privacy Policy</Link> · <Link href="/about">About</Link> ·{" "}
       <span>Anonymous. No accounts. No ads.</span> ·{" "}
       <select className="cursel" aria-label="Currency" value={code} onChange={(e) => setCode(e.target.value as CurrencyCode)}>
-        {Object.values(CUR).map((c) => (
-          <option key={c.code} value={c.code}>
-            {c.code}
+        {PAYABLE_CURRENCIES.map((c) => (
+          <option key={c} value={c}>
+            {CUR[c].code}
           </option>
         ))}
       </select>

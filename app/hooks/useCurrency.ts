@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { CUR, CurrencyCode, detectCur } from "@/lib/currency";
+import { CUR, CurrencyCode, detectCur, fallbackPayable, isPayable } from "@/lib/currency";
 
 export function useCurrency() {
   const [code, setCodeState] = useState<CurrencyCode>("USD");
@@ -12,9 +12,13 @@ export function useCurrency() {
     } catch {
       /* ignore */
     }
-    setCodeState(detectCur(saved));
+    // Never show prices in a currency Cashfree can't charge — that's what
+    // made every overseas "Pay and post" fail with a generic error.
+    const detected = detectCur(saved);
+    setCodeState(isPayable(detected) ? detected : fallbackPayable());
   }, []);
   const setCode = (c: CurrencyCode) => {
+    if (!isPayable(c)) c = fallbackPayable();
     setCodeState(c);
     try {
       localStorage.setItem("unsaid_cur", JSON.stringify(c));

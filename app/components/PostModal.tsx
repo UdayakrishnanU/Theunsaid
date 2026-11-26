@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { BGS, bgCss, bgPos, bgSize, floorBidBase, rupee, topBidBase, BOOSTED_SHADES } from "@/lib/board-helpers";
-import { CurrencyDef, dp, fromBase, toBase, Tier } from "@/lib/currency";
+import { CurrencyDef, dp, fromBase, maxOrderBase, toBase, Tier } from "@/lib/currency";
 import type { Post } from "@/lib/types";
 import { api } from "@/app/lib-client/api";
 import { useOwnerKey } from "@/app/hooks/useOwnerKey";
@@ -143,6 +143,10 @@ export default function PostModal({
     if (type === "dilemma" && (!text.trim() || !oa.trim() || !ob.trim())) return;
     if (tier === "pin" && toBase(bidAmount || 0, currency.code) < floorBase) {
       setBidErr(`The shelf is held at ${rupee(floorBase - 100, currency.code)}. You need at least ${rupee(floorBase, currency.code)} to get on it.`);
+      return;
+    }
+    if (tier === "pin" && toBase(bidAmount || 0, currency.code) > maxOrderBase) {
+      setBidErr(`That's more than we can take in a single payment — the most is ${rupee(maxOrderBase, currency.code)}.`);
       return;
     }
 
@@ -390,6 +394,7 @@ export default function PostModal({
                   <input
                     type="number"
                     min={floorMajor}
+                    max={fromBase(maxOrderBase, currency.code)}
                     step={dp(currency.code) === 0 ? "1" : "0.01"}
                     value={bidAmount || floorMajor}
                     onChange={(e) => setBidAmount(Number(e.target.value))}
