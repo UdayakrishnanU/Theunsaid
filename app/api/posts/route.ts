@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
-import { CUR, CurrencyCode, toBase } from "@/lib/currency";
+import { CUR, CurrencyCode, toBase, fromBase, fmt, isPayable, fallbackPayable, maxOrderBase } from "@/lib/currency";
 import { computePinFloor } from "@/lib/pinPricing";
 import { friendlyError } from "@/lib/apiError";
 import { scan, moderateServerSide } from "@/lib/moderation";
 import { hashOwnerKey, mkOwnerCode } from "@/lib/ownerKey";
-import { createOrder, cashfreeMode } from "@/lib/cashfree";
+import { createOrder, cashfreeMode, cashfreeRejection } from "@/lib/cashfree";
 import { isAdmin } from "@/lib/adminAuth";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { verifyTurnstile } from "@/lib/turnstile";
@@ -100,13 +100,19 @@ export async function POST(req: NextRequest) {
 
   const sb = supabaseAdmin();
 
+  // Charge only in a currency Cashfree will actually accept for this account
+  // (see PAYABLE_CURRENCIES in lib/currency.ts). A visitor whose browser still
+  // has an older non-payable currency saved gets that currency's tier priced
+  // in the payable one instead of a hard failure at Cashfree.
+  const currency: CurrencyCode = isPayable(b.currency) ? b.currency : fallbackPayable();
+
   // Price it.
   let amountMajor: number;
   if (b.tier === "pin") {
     // Same computation the create-post form used to show its floor price —
     // see lib/pinPricing.ts — so a bid that was accepted as "enough" there
     // can never be rejected here for a different number.
-    const { floorBase } = await computePinFloor(sb, b.currency);
+    const { floorBase } = await computePinFloor(sb, currency);
     const bidBase = b.bidAmount ? toBase(b.bidAmount, b.currency) : 0;
     if (!b.bidAmount || bidBase < floorBase) {
       return NextResponse.json(
@@ -114,12 +120,18 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    amountMajor = b.bidAmount;
+    amountMajor = currency === b.currency ? b.bidAmount : fromBase(bidBase, currency);
   } else {
-    amountMajor = b.tier === "glow" ? CUR[b.currency].glow : CUR[b.currency].post;
+    amountMajor = b.tier === "glow" ? CUR[currency].glow : CUR[currency].post;
   }
   const amountMinor = Math.round(amountMajor * 100); // Smallest sub-unit (paise for INR, cents for USD).
-  const paidBase = toBase(amountMajor, b.currency);
+  const paidBase = toBase(amountMajor, currency);
+  if (paidBase > maxOrderBase) {
+    return NextResponse.json(
+      { error: `That's more than we can take in a single payment — the most is ${fmt(fromBase(maxOrderBase, currency), currency)}. Try a lower bid.` },
+      { status: 400 }
+    );
+  }
 
   const ownerCode = b.ownerKey || mkOwnerCode();
   const ownerKeyHash = hashOwnerKey(ownerCode);
@@ -154,7 +166,7 @@ export async function POST(req: NextRequest) {
     tier: b.tier,
     status: devBypass ? "live" : "pending_payment",
     owner_key_hash: ownerKeyHash,
-    currency: b.currency,
+    currency,
     paid_amount_minor: amountMinor,
     paid_base: paidBase,
   });
@@ -165,12 +177,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const order = await createOrder(amountMinor, b.currency, postId, { postId, tier: b.tier });
+    const order = await createOrder(amountMinor, currency, postId, { postId, tier: b.tier });
     const { error: orderErr } = await sb.from("payment_orders").insert({
       id: order.id,
       post_id: postId,
       amount_minor: amountMinor,
-      currency: b.currency,
+      currency,
       status: "created",
     });
     if (orderErr) return NextResponse.json({ error: friendlyError("posts.order-insert", orderErr) }, { status: 500 });
@@ -178,12 +190,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       postId,
       ownerKey: ownerCode,
-      order: { id: order.id, amount: amountMinor, currency: b.currency },
+      order: { id: order.id, amount: amountMinor, currency },
       cashfree: { paymentSessionId: order.paymentSessionId, mode: cashfreeMode() },
     });
   } catch (e) {
     console.error("[api:posts.createOrder]", e);
     await sb.from("posts").delete().eq("id", postId);
+    const rejection = cashfreeRejection(e);
+    if (rejection) return NextResponse.json({ error: rejection }, { status: 400 });
     return NextResponse.json(
       { error: friendlyError("posts.createOrder", e, "Payments are temporarily unavailable — try again in a few minutes.") },
       { status: 502 }
