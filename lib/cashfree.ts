@@ -128,3 +128,18 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
     return false; // length mismatch etc — definitely not equal
   }
 }
+
+/** Turns the Cashfree order-creation rejections we know about into a clear,
+ * customer-facing 400 instead of the generic "Payments are temporarily
+ * unavailable" 502 — neither of these is temporary, so "try again in a few
+ * minutes" was actively misleading. Returns null for anything else. */
+export function cashfreeRejection(e: unknown): string | null {
+  const msg = e instanceof Error ? e.message : String(e ?? "");
+  if (/max order amount/i.test(msg)) {
+    return "That's more than we can take in a single payment. Try a lower bid.";
+  }
+  if (/currency not enabled/i.test(msg)) {
+    return "Payments in that currency aren't available yet. Reload the page — prices will show in INR, which you can pay with UPI, cards or netbanking.";
+  }
+  return null;
+}
